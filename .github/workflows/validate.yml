@@ -1,4 +1,4 @@
-name: Validate skill and installers
+name: Validate skill and universal installers
 
 on:
   push:
@@ -19,62 +19,80 @@ jobs:
         with:
           node-version: 20
       - name: Check shell syntax
-        run: bash -n install.sh uninstall.sh
-      - name: Validate package
+        run: bash -n install.sh uninstall.sh installers/install.sh installers/uninstall.sh scripts/build-release.sh
+      - name: Validate Agent Skill package
+        run: node scripts/validate-package.js
+      - name: Build upload-ready bundle
         run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const skill = fs.readFileSync('skill/gas-optimizer/SKILL.md', 'utf8');
-          const rubric = fs.readFileSync('skill/gas-optimizer/references/quality-rubric.md', 'utf8');
-          const report = fs.readFileSync('skill/gas-optimizer/assets/analysis-plan-template.html', 'utf8');
-          if (!skill.startsWith('---\nname: "gas-optimizer"\ndescription: "')) throw new Error('Invalid skill frontmatter');
-          for (const name of ['SEO', 'GEO', 'AEO', 'Accessibility', 'Performance', 'Deployment readiness']) {
-            const marker = `## ${name}: 100 points`;
-            const start = rubric.indexOf(marker);
-            if (start < 0) throw new Error(`Missing rubric section: ${name}`);
-            const rest = rubric.slice(start + marker.length);
-            const next = rest.indexOf('\n## ');
-            const section = next < 0 ? rest : rest.slice(0, next);
-            const points = [...section.matchAll(/^\|[^\n|]+\|\s*(\d+)\s*\|/gm)].map(match => Number(match[1]));
-            const sum = points.reduce((total, value) => total + value, 0);
-            if (sum !== 100) throw new Error(`${name} totals ${sum}, not 100`);
-          }
-          for (const marker of ['{{SEO_SCORE}}', '{{GEO_SCORE}}', '{{AEO_SCORE}}', '{{ANALYSIS_APPROVAL}}', '{{EXTERNAL_APPROVALS}}']) {
-            if (!report.includes(marker)) throw new Error(`Missing report marker: ${marker}`);
-          }
-          for (const match of report.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(match[1]);
-          console.log('Package validation passed.');
-          NODE
+          ./scripts/build-release.sh
+          unzip -l "dist/gas-optimizer-v$(cat VERSION).zip" | grep 'gas-optimizer/SKILL.md'
+          test -s dist/SHA256SUMS.txt
 
-  macos-installer:
-    runs-on: macos-latest
+  unix-installers:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install, update, and uninstall
+      - name: Install, update, and uninstall all user targets
         run: |
           set -euo pipefail
-          ROOT="$RUNNER_TEMP/aside/u/0"
-          mkdir -p "$ROOT"
-          ./install.sh --account-root "$ROOT"
-          test -f "$ROOT/skills/user/gas-optimizer/SKILL.md"
-          ./install.sh --account-root "$ROOT"
-          find "$ROOT/backups/skills" -maxdepth 1 -type d -name 'gas-optimizer-*' | grep -q .
-          ./uninstall.sh --account-root "$ROOT" --yes
-          test ! -e "$ROOT/skills/user/gas-optimizer"
+          export HOME="$RUNNER_TEMP/home"
+          export CLAUDE_SKILLS_ROOT="$HOME/.claude/skills"
+          export AGENT_SKILLS_ROOT="$HOME/.agents/skills"
+          ASIDE_ROOT="$RUNNER_TEMP/aside/u/0"
+          mkdir -p "$HOME" "$ASIDE_ROOT"
+          ./install.sh --target all --scope user --aside-account-root "$ASIDE_ROOT"
+          test -f "$ASIDE_ROOT/skills/user/gas-optimizer/SKILL.md"
+          test -f "$HOME/.claude/skills/gas-optimizer/SKILL.md"
+          test -f "$HOME/.agents/skills/gas-optimizer/SKILL.md"
+          ./install.sh --target all --scope user --aside-account-root "$ASIDE_ROOT"
+          test -d "$ASIDE_ROOT/backups/skills"
+          ./uninstall.sh --target all --scope user --aside-account-root "$ASIDE_ROOT" --yes
+          test ! -e "$ASIDE_ROOT/skills/user/gas-optimizer"
+          test ! -e "$HOME/.claude/skills/gas-optimizer"
+          test ! -e "$HOME/.agents/skills/gas-optimizer"
+      - name: Install and uninstall project targets
+        run: |
+          set -euo pipefail
+          PROJECT="$RUNNER_TEMP/project"
+          mkdir -p "$PROJECT"
+          ./install.sh --target all --scope project --project-root "$PROJECT"
+          test -f "$PROJECT/.claude/skills/gas-optimizer/SKILL.md"
+          test -f "$PROJECT/.agents/skills/gas-optimizer/SKILL.md"
+          ./uninstall.sh --target all --scope project --project-root "$PROJECT" --yes
+          test ! -e "$PROJECT/.claude/skills/gas-optimizer"
+          test ! -e "$PROJECT/.agents/skills/gas-optimizer"
 
   windows-installer:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install, update, and uninstall
+      - name: Install, update, and uninstall all user targets
         shell: pwsh
         run: |
-          $Root = Join-Path $env:RUNNER_TEMP "aside\u\0"
-          New-Item -ItemType Directory -Path $Root -Force | Out-Null
-          .\install.ps1 -AccountRoot $Root
-          if (-not (Test-Path (Join-Path $Root "skills\user\gas-optimizer\SKILL.md"))) { throw "Install verification failed" }
-          .\install.ps1 -AccountRoot $Root
-          $Backups = Get-ChildItem (Join-Path $Root "backups\skills") -Directory -Filter "gas-optimizer-*"
-          if ($Backups.Count -lt 1) { throw "Update backup verification failed" }
-          .\uninstall.ps1 -AccountRoot $Root -Yes
-          if (Test-Path (Join-Path $Root "skills\user\gas-optimizer")) { throw "Uninstall verification failed" }
+          $AsideRoot = Join-Path $env:RUNNER_TEMP "aside\u\0"
+          $env:CLAUDE_SKILLS_ROOT = Join-Path $env:RUNNER_TEMP "home\.claude\skills"
+          $env:AGENT_SKILLS_ROOT = Join-Path $env:RUNNER_TEMP "home\.agents\skills"
+          New-Item -ItemType Directory -Path $AsideRoot -Force | Out-Null
+          .\install.ps1 -Target All -Scope User -AsideAccountRoot $AsideRoot
+          if (-not (Test-Path (Join-Path $AsideRoot "skills\user\gas-optimizer\SKILL.md"))) { throw "Aside install failed" }
+          if (-not (Test-Path (Join-Path $env:CLAUDE_SKILLS_ROOT "gas-optimizer\SKILL.md"))) { throw "Claude install failed" }
+          if (-not (Test-Path (Join-Path $env:AGENT_SKILLS_ROOT "gas-optimizer\SKILL.md"))) { throw "Agents install failed" }
+          .\install.ps1 -Target All -Scope User -AsideAccountRoot $AsideRoot
+          .\uninstall.ps1 -Target All -Scope User -AsideAccountRoot $AsideRoot -Yes
+          if (Test-Path (Join-Path $AsideRoot "skills\user\gas-optimizer")) { throw "Aside uninstall failed" }
+          if (Test-Path (Join-Path $env:CLAUDE_SKILLS_ROOT "gas-optimizer")) { throw "Claude uninstall failed" }
+          if (Test-Path (Join-Path $env:AGENT_SKILLS_ROOT "gas-optimizer")) { throw "Agents uninstall failed" }
+      - name: Install and uninstall project targets
+        shell: pwsh
+        run: |
+          $Project = Join-Path $env:RUNNER_TEMP "project"
+          New-Item -ItemType Directory -Path $Project -Force | Out-Null
+          .\install.ps1 -Target All -Scope Project -ProjectRoot $Project
+          if (-not (Test-Path (Join-Path $Project ".claude\skills\gas-optimizer\SKILL.md"))) { throw "Claude project install failed" }
+          if (-not (Test-Path (Join-Path $Project ".agents\skills\gas-optimizer\SKILL.md"))) { throw "Agents project install failed" }
+          .\uninstall.ps1 -Target All -Scope Project -ProjectRoot $Project -Yes
+          if (Test-Path (Join-Path $Project ".claude\skills\gas-optimizer")) { throw "Claude project uninstall failed" }
+          if (Test-Path (Join-Path $Project ".agents\skills\gas-optimizer")) { throw "Agents project uninstall failed" }

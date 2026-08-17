@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Deuk1718/GAS-Optimizer)](https://github.com/Deuk1718/GAS-Optimizer/releases)
 
-GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근성, 성능, 배포 준비도** 관점에서 분석하고 최적화하는 Aside 사용자 스킬입니다.
+GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근성, 성능, 배포 준비도** 관점에서 분석하고 최적화하는 공개 표준 [Agent Skills](https://agentskills.io/) 패키지입니다.
 
 여기서 GAS는 **GEO · AEO · SEO**를 뜻하며 Google Apps Script와는 관계가 없습니다.
 
@@ -66,131 +66,146 @@ GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근�
 
 한 기능의 승인은 다른 외부 작업의 승인을 의미하지 않습니다.
 
+## 공식 지원 환경
+
+| 설치 대상 | 사용하는 환경 | 사용자 설치 위치 | 프로젝트 설치 위치 |
+|---|---|---|---|
+| `aside` | Aside | `<Aside account root>/skills/user/gas-optimizer` | 지원하지 않음 |
+| `claude` | Claude Code | `~/.claude/skills/gas-optimizer` | `.claude/skills/gas-optimizer` |
+| `agents` | Codex, Cursor, GitHub Copilot | `~/.agents/skills/gas-optimizer` | `.agents/skills/gas-optimizer` |
+
+macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI API처럼 파일 업로드가 필요한 환경에는 Release의 `gas-optimizer-v1.1.0.zip`을 사용할 수 있습니다.
+
+## 호출 방법
+
+모든 환경에는 두 가지 호출 개념이 있습니다.
+
+1. **자동 호출**: 요청 내용이 스킬 설명과 일치할 때 호스트가 자동으로 선택
+2. **명시적 호출**: 사용자가 스킬 이름을 직접 선택하거나 입력
+
+슬래시는 명시적 호출의 한 형태일 뿐이며 환경마다 문법이 다릅니다.
+
+| 환경 | 명시적 호출 |
+|---|---|
+| Aside | `gas-optimizer 스킬을 사용해서 분석해줘` |
+| Claude Code | `/gas-optimizer` |
+| Codex CLI·IDE | `$gas-optimizer`, 또는 `/skills`에서 선택 |
+| ChatGPT Skills | `@gas-optimizer` 선택 |
+| Cursor | `/gas-optimizer` |
+| GitHub Copilot | `/gas-optimizer` |
+| API | 요청에 skill ID 또는 번들 연결 |
+
+자세한 내용과 자동 호출 예시는 [`docs/INVOCATION.md`](docs/INVOCATION.md)를 참고하십시오.
+
 ## 요구 사항
 
-- Aside가 설치되어 있고 한 번 이상 실행되어 계정 폴더가 생성되어 있어야 합니다.
-- 기본 Aside 계정 경로:
-  - macOS: `~/.aside/u/0`
-  - Windows: `%USERPROFILE%\.aside\u\0`
-- 다른 계정 경로를 사용한다면 설치 명령의 `--account-root` 또는 `-AccountRoot` 옵션을 사용하십시오.
+- 지원 대상 Agent Skills 호스트 중 하나
+- 전체 워크플로에는 프로젝트 파일 읽기·쓰기와 빌드·검증 명령 실행 기능 필요
+- 브라우저, 네트워크, Git, 배포 도구가 없는 환경에서는 해당 검사가 `[blocked]` 또는 수동 단계로 남을 수 있음
+- Aside 대상은 Aside를 한 번 실행하여 계정 폴더가 생성되어 있어야 함
 
-## macOS 설치
-
-### Git으로 설치
+## macOS·Linux 설치
 
 ```bash
-git clone --branch v1.0.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
+git clone --branch v1.1.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
 cd GAS-Optimizer
-chmod +x install.sh uninstall.sh
-./install.sh
+chmod +x install.sh uninstall.sh installers/*.sh scripts/build-release.sh
 ```
 
-다른 Aside 계정 경로에 설치하려면:
+사용자 범위 설치:
 
 ```bash
-./install.sh --account-root "/path/to/.aside/u/ACCOUNT_ID"
+./install.sh --target aside --scope user
+./install.sh --target claude --scope user
+./install.sh --target agents --scope user
+./install.sh --target all --scope user
 ```
 
-### Git 없이 설치
-
-[GitHub Releases](https://github.com/Deuk1718/GAS-Optimizer/releases/latest)에서 Source code 압축 파일을 내려받아 압축을 푼 뒤 터미널에서 해당 폴더로 이동하고 다음을 실행합니다.
+프로젝트 범위 설치:
 
 ```bash
-chmod +x install.sh uninstall.sh
-./install.sh
+./install.sh --target agents --scope project --project-root /path/to/project
+./install.sh --target claude --scope project --project-root /path/to/project
+./install.sh --target all --scope project --project-root /path/to/project
 ```
+
+`all` 프로젝트 설치는 Claude와 공통 Agent Skills 위치를 설치합니다. Aside는 계정 범위만 지원합니다.
 
 ## Windows 설치
-
-### Git으로 설치
 
 PowerShell에서 실행합니다.
 
 ```powershell
-git clone --branch v1.0.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
+git clone --branch v1.1.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
 Set-Location GAS-Optimizer
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-PowerShell 7을 사용한다면 마지막 명령을 다음처럼 실행할 수 있습니다.
+사용자 범위 설치:
 
 ```powershell
-pwsh -File .\install.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target Aside -Scope User
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target Claude -Scope User
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target Agents -Scope User
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target All -Scope User
 ```
 
-다른 Aside 계정 경로에 설치하려면:
+프로젝트 범위 설치:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -AccountRoot "C:\path\to\.aside\u\ACCOUNT_ID"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Target All -Scope Project -ProjectRoot "C:\path\to\project"
 ```
 
-`-ExecutionPolicy Bypass`는 해당 PowerShell 프로세스에만 적용되며 시스템 실행 정책을 영구 변경하지 않습니다. 실행 전에 설치 스크립트 내용을 검토하는 것을 권장합니다.
+PowerShell 7에서는 `powershell` 대신 `pwsh`를 사용할 수 있습니다. `-ExecutionPolicy Bypass`는 해당 프로세스에만 적용되며 시스템 정책을 영구 변경하지 않습니다.
 
-### Git 없이 설치
+## Git 없이 설치
 
-[GitHub Releases](https://github.com/Deuk1718/GAS-Optimizer/releases/latest)에서 Source code ZIP을 내려받아 압축을 푼 뒤, 해당 폴더에서 `install.ps1`을 실행합니다.
+[GitHub Releases](https://github.com/Deuk1718/GAS-Optimizer/releases/latest)에서 Source code 압축 파일을 내려받아 압축을 푼 뒤 위 설치기를 실행합니다.
+
+Claude.ai 또는 API 업로드에는 별도 Release 자산인 다음 파일을 사용합니다.
+
+```text
+gas-optimizer-v1.1.0.zip
+SHA256SUMS.txt
+```
 
 ## 설치 동작과 업데이트
 
-설치기는 다음 세 파일만 Aside 계정의 `skills/user/gas-optimizer`에 복사합니다.
+설치기는 공통 원본인 `skill/gas-optimizer`를 선택한 위치에 복사합니다. 기존 설치가 있으면 덮어쓰기 전에 자동 백업하며 심볼릭 링크는 교체하지 않습니다.
 
-- `SKILL.md`
-- `references/quality-rubric.md`
-- `assets/analysis-plan-template.html`
-
-기존 설치가 있으면 삭제 전에 다음 경로에 자동 백업합니다.
-
-```text
-<Aside account root>/backups/skills/gas-optimizer-<UTC timestamp>
-```
-
-업데이트는 새 버전을 내려받거나 새 태그를 체크아웃한 뒤 설치기를 다시 실행하면 됩니다. 설치 후에는 Aside를 다시 시작하거나 새 세션을 시작하여 스킬 목록을 새로 불러오십시오.
-
-## 설치 확인
-
-macOS:
-
-```bash
-test -f ~/.aside/u/0/skills/user/gas-optimizer/SKILL.md && echo "installed"
-```
-
-Windows PowerShell:
-
-```powershell
-Test-Path "$HOME\.aside\u\0\skills\user\gas-optimizer\SKILL.md"
-```
+업데이트는 새 태그를 내려받은 뒤 같은 대상과 범위로 설치기를 다시 실행하면 됩니다. 설치 후 호스트가 즉시 발견하지 못하면 해당 앱이나 세션을 다시 시작하십시오.
 
 ## 제거
 
-제거할 때도 현재 설치본을 먼저 백업합니다.
-
-macOS:
+macOS·Linux:
 
 ```bash
-./uninstall.sh
+./uninstall.sh --target agents --scope user --yes
+./uninstall.sh --target all --scope project --project-root /path/to/project --yes
 ```
 
 Windows:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Target Agents -Scope User -Yes
 ```
 
-자동화 환경에서는 macOS의 `--yes` 또는 Windows의 `-Yes` 옵션으로 확인 질문을 생략할 수 있습니다.
+제거할 때도 현재 설치본을 먼저 백업합니다.
 
 ## 사용 예시
 
-Aside에서 다음과 같이 요청할 수 있습니다.
+자동 호출을 유도하는 일반 요청:
 
 ```text
-이 정적 사이트를 GAS-Optimizer 기준으로 분석해줘.
+이 SSR 프로젝트의 SEO, GEO, AEO, 접근성, 성능과 배포 준비도를 각각 평가해줘. 우선 분석만 진행해줘.
 ```
+
+플랫폼에 관계없이 통하는 명시적 요청:
 
 ```text
-이 SSG 프로젝트의 SEO, GEO, AEO와 웹 품질을 각각 95점 이상이 되도록 최적화하고 싶어. 우선 분석만 진행해줘.
+GAS-Optimizer 스킬을 사용해서 이 프로젝트를 분석해줘. 아직 파일은 수정하지 마.
 ```
 
-스킬은 먼저 분석 보고서를 만들고 승인을 요청합니다. 분석 승인과 계획 승인 전에는 프로젝트 소스 최적화를 시작하지 않습니다.
+스킬은 먼저 분석 보고서를 만들고 승인을 요청합니다. 명시적으로 호출해도 분석 승인과 계획 승인 단계는 생략되지 않습니다.
 
 ## 저장소 구성
 
@@ -199,23 +214,28 @@ GAS-Optimizer/
 ├── README.md
 ├── LICENSE
 ├── VERSION
-├── install.sh
-├── install.ps1
-├── uninstall.sh
-├── uninstall.ps1
-├── .github/workflows/validate.yml
+├── install.sh / install.ps1
+├── uninstall.sh / uninstall.ps1
+├── installers/
+├── scripts/
+├── docs/INVOCATION.md
+├── .github/workflows/
 └── skill/gas-optimizer/
     ├── SKILL.md
-    ├── references/quality-rubric.md
+    ├── references/
+    │   ├── quality-rubric.md
+    │   └── capability-matrix.md
     └── assets/analysis-plan-template.html
 ```
 
 ## 보안과 한계
 
-- 설치기는 Aside 계정 루트 밖에 파일을 쓰지 않습니다.
-- 기존 스킬은 덮어쓰기 전에 자동 백업합니다.
-- 심볼릭 링크 또는 예상과 다른 스킬은 자동으로 제거하지 않습니다.
-- GAS-Optimizer의 점수는 근거가 확인된 감사 결과이며 검색 순위, 트래픽, AI 인용 또는 색인 등록을 보장하지 않습니다.
+- 기존 설치는 덮어쓰기와 제거 전에 자동 백업합니다.
+- 심볼릭 링크 또는 예상과 다른 스킬은 자동으로 교체·제거하지 않습니다.
+- Release ZIP에는 SHA-256 체크섬을 제공합니다.
+- 설치 스크립트를 인터넷에서 바로 파이프로 실행하는 방식은 권장하지 않습니다.
+- 호스트가 필요한 도구를 제공하지 않으면 관련 검사는 통과가 아니라 `[blocked]`입니다.
+- 점수는 검색 순위, 트래픽, AI 인용 또는 색인 등록을 보장하지 않습니다.
 - 실제 배포, GitHub 푸시, Search Console, Bing 등록은 사용자가 선택하고 승인한 경우에만 수행합니다.
 
 ## 라이선스
@@ -224,4 +244,4 @@ GAS-Optimizer/
 
 ---
 
-**English summary:** GAS-Optimizer is an Aside user skill for evidence-based SEO, GEO, AEO, accessibility, performance, and deployment-readiness optimization of static, SSG, and SSR websites. Each domain must independently score at least 95/100. macOS and Windows installers are included.
+**English summary:** GAS-Optimizer is an open-standard Agent Skill for evidence-based SEO, GEO, AEO, accessibility, performance, and deployment-readiness optimization. Each domain must independently score at least 95/100. Aside, Claude Code, Codex, Cursor, and GitHub Copilot installation paths are supported on macOS, Linux, and Windows.

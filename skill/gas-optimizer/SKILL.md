@@ -14,12 +14,13 @@ Optimize crawlable websites without weakening evidence, truthfulness, accessibil
 - Any unresolved Critical or High issue, HTML validation error, broken primary workflow, false structured data, or exposed secret blocks completion regardless of score.
 - Mark unmeasurable required checks as `[blocked]`; never assume they passed.
 - Use current first-party Google, Bing, web-standard, and schema.org guidance. Treat vendor GEO claims as secondary.
+- When host capabilities or invocation behavior are uncertain, read `references/capability-matrix.md`; unavailable required checks remain `[blocked]`.
 - Require crawlable, meaningful initial HTML. JavaScript may progressively enhance content but must not be the only source of primary content.
 - Do not begin optimization until both approval gates below are satisfied.
 
 ## Establish scope
 
-1. Inspect the project, its existing tools, page types, build output, current deployment configuration, and user-stated constraints.
+1. Inspect the project, its existing tools, page types, build output, current deployment configuration, user-stated constraints, and the host capabilities available for verification.
 2. Confirm the project is static, SSG, or SSR. For a CSR-only application, report the crawlability limitation and agree on an SSR, SSG, or prerendering path before scoring it as ready.
 3. Record the site purpose, audience, canonical host, representative page types, protected design or functionality, and content-editing boundaries.
 4. Prefer the project's existing test, lint, build, and audit tools. Plan a small project-specific audit script only where repeatable coverage is missing.
