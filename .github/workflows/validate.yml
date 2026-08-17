@@ -1,0 +1,80 @@
+name: Validate skill and installers
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check shell syntax
+        run: bash -n install.sh uninstall.sh
+      - name: Validate package
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const skill = fs.readFileSync('skill/gas-optimizer/SKILL.md', 'utf8');
+          const rubric = fs.readFileSync('skill/gas-optimizer/references/quality-rubric.md', 'utf8');
+          const report = fs.readFileSync('skill/gas-optimizer/assets/analysis-plan-template.html', 'utf8');
+          if (!skill.startsWith('---\nname: "gas-optimizer"\ndescription: "')) throw new Error('Invalid skill frontmatter');
+          for (const name of ['SEO', 'GEO', 'AEO', 'Accessibility', 'Performance', 'Deployment readiness']) {
+            const marker = `## ${name}: 100 points`;
+            const start = rubric.indexOf(marker);
+            if (start < 0) throw new Error(`Missing rubric section: ${name}`);
+            const rest = rubric.slice(start + marker.length);
+            const next = rest.indexOf('\n## ');
+            const section = next < 0 ? rest : rest.slice(0, next);
+            const points = [...section.matchAll(/^\|[^\n|]+\|\s*(\d+)\s*\|/gm)].map(match => Number(match[1]));
+            const sum = points.reduce((total, value) => total + value, 0);
+            if (sum !== 100) throw new Error(`${name} totals ${sum}, not 100`);
+          }
+          for (const marker of ['{{SEO_SCORE}}', '{{GEO_SCORE}}', '{{AEO_SCORE}}', '{{ANALYSIS_APPROVAL}}', '{{EXTERNAL_APPROVALS}}']) {
+            if (!report.includes(marker)) throw new Error(`Missing report marker: ${marker}`);
+          }
+          for (const match of report.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(match[1]);
+          console.log('Package validation passed.');
+          NODE
+
+  macos-installer:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install, update, and uninstall
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/aside/u/0"
+          mkdir -p "$ROOT"
+          ./install.sh --account-root "$ROOT"
+          test -f "$ROOT/skills/user/gas-optimizer/SKILL.md"
+          ./install.sh --account-root "$ROOT"
+          find "$ROOT/backups/skills" -maxdepth 1 -type d -name 'gas-optimizer-*' | grep -q .
+          ./uninstall.sh --account-root "$ROOT" --yes
+          test ! -e "$ROOT/skills/user/gas-optimizer"
+
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install, update, and uninstall
+        shell: pwsh
+        run: |
+          $Root = Join-Path $env:RUNNER_TEMP "aside\u\0"
+          New-Item -ItemType Directory -Path $Root -Force | Out-Null
+          .\install.ps1 -AccountRoot $Root
+          if (-not (Test-Path (Join-Path $Root "skills\user\gas-optimizer\SKILL.md"))) { throw "Install verification failed" }
+          .\install.ps1 -AccountRoot $Root
+          $Backups = Get-ChildItem (Join-Path $Root "backups\skills") -Directory -Filter "gas-optimizer-*"
+          if ($Backups.Count -lt 1) { throw "Update backup verification failed" }
+          .\uninstall.ps1 -AccountRoot $Root -Yes
+          if (Test-Path (Join-Path $Root "skills\user\gas-optimizer")) { throw "Uninstall verification failed" }

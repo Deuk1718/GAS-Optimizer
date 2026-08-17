@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{PROJECT_NAME}} GAS 최적화 분석·실행 계획</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6f3;
+      --surface: #ffffff;
+      --surface-2: #edf2ec;
+      --text: #17211a;
+      --muted: #5f6f63;
+      --line: #cfd8d0;
+      --accent: #176b45;
+      --accent-soft: #dcefe4;
+      --critical: #a31d1d;
+      --high: #b84c12;
+      --medium: #8a6a00;
+      --low: #386a8c;
+      --radius: 18px;
+      --shadow: 0 14px 40px rgba(23, 33, 26, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101512;
+        --surface: #18201b;
+        --surface-2: #202b24;
+        --text: #edf5ef;
+        --muted: #afbeb3;
+        --line: #35433a;
+        --accent: #74d5a2;
+        --accent-soft: #193e2b;
+        --critical: #ff8989;
+        --high: #ffad79;
+        --medium: #e6cb69;
+        --low: #90c7e8;
+        --shadow: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    a { color: var(--accent); }
+    a:focus-visible, button:focus-visible, select:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+    .skip {
+      position: absolute;
+      left: 1rem;
+      top: -5rem;
+      z-index: 10;
+      padding: .7rem 1rem;
+      background: var(--text);
+      color: var(--surface);
+      border-radius: 10px;
+    }
+    .skip:focus { top: 1rem; }
+    header, main, footer { width: min(1180px, calc(100% - 2rem)); margin-inline: auto; }
+    header { padding: 4rem 0 2rem; }
+    .eyebrow { color: var(--accent); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: .35rem 0 1rem; font-size: clamp(2.1rem, 6vw, 4.5rem); line-height: 1.02; }
+    h2 { margin-top: 0; font-size: clamp(1.4rem, 3vw, 2rem); }
+    h3 { margin-bottom: .3rem; }
+    .lead { max-width: 850px; color: var(--muted); font-size: 1.08rem; }
+    .meta, .controls, .scores, .extensions { display: grid; gap: 1rem; }
+    .meta { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 2rem; }
+    .panel, .meta > div, .score, .extension {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .meta > div, .score, .extension { padding: 1rem; }
+    .meta dt { color: var(--muted); font-size: .85rem; }
+    .meta dd { margin: .2rem 0 0; font-weight: 750; }
+    main { padding-bottom: 4rem; }
+    section { margin-top: 2rem; scroll-margin-top: 1rem; }
+    .panel { padding: clamp(1rem, 3vw, 2rem); }
+    .scores { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .score strong { display: block; font-size: 2.1rem; line-height: 1; margin: .35rem 0; }
+    .score small { color: var(--muted); }
+    .pass { color: var(--accent); }
+    .fail { color: var(--critical); }
+    .blocked { color: var(--high); }
+    .gate {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--surface-2);
+      border-radius: 14px;
+      font-weight: 750;
+    }
+    .controls { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem; }
+    label { font-weight: 700; }
+    select {
+      width: 100%;
+      margin-top: .3rem;
+      padding: .7rem;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 850px; }
+    th, td { padding: .8rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: .85rem; }
+    .tag { display: inline-block; padding: .2rem .55rem; border-radius: 999px; background: var(--surface-2); font-weight: 750; font-size: .82rem; }
+    .critical { color: var(--critical); }
+    .high { color: var(--high); }
+    .medium { color: var(--medium); }
+    .low { color: var(--low); }
+    .locked { border: 2px dashed var(--line); background: var(--surface-2); }
+    .extensions { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .extension p { color: var(--muted); }
+    .extension dl { margin-bottom: 0; }
+    .extension dt { margin-top: .65rem; font-weight: 800; }
+    .extension dd { margin-left: 0; color: var(--muted); }
+    pre { overflow: auto; padding: 1rem; background: var(--surface-2); border-radius: 12px; white-space: pre-wrap; }
+    footer { padding: 2rem 0 4rem; color: var(--muted); }
+    [hidden] { display: none !important; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 바로가기</a>
+  <header>
+    <div class="eyebrow">GAS-Optimizer · {{REPORT_PHASE}}</div>
+    <h1>{{PROJECT_NAME}}<br>분석·실행 계획</h1>
+    <p class="lead">SEO, GEO, AEO, 접근성, 성능, 배포 준비도를 독립적으로 평가합니다. 여섯 영역 모두 95점 이상이며 차단 문제가 없어야 통과합니다.</p>
+    <dl class="meta">
+      <div><dt>분석 기준</dt><dd>{{AUDIT_DATE}}</dd></div>
+      <div><dt>프로젝트 경로</dt><dd>{{PROJECT_PATH}}</dd></div>
+      <div><dt>기준 URL</dt><dd>{{CANONICAL_URL}}</dd></div>
+      <div><dt>승인 상태</dt><dd>{{APPROVAL_STATUS}}</dd></div>
+    </dl>
+  </header>
+
+  <main id="main">
+    <section class="panel" aria-labelledby="score-title">
+      <h2 id="score-title">비보상식 95점 게이트</h2>
+      <div class="scores">
+        <article class="score"><span>SEO</span><strong>{{SEO_SCORE}}</strong><small>/ 100 · {{SEO_STATUS}}</small></article>
+        <article class="score"><span>GEO</span><strong>{{GEO_SCORE}}</strong><small>/ 100 · {{GEO_STATUS}}</small></article>
+        <article class="score"><span>AEO</span><strong>{{AEO_SCORE}}</strong><small>/ 100 · {{AEO_STATUS}}</small></article>
+        <article class="score"><span>접근성</span><strong>{{ACCESSIBILITY_SCORE}}</strong><small>/ 100 · {{ACCESSIBILITY_STATUS}}</small></article>
+        <article class="score"><span>성능</span><strong>{{PERFORMANCE_SCORE}}</strong><small>/ 100 · {{PERFORMANCE_STATUS}}</small></article>
+        <article class="score"><span>배포 준비도</span><strong>{{DEPLOYMENT_SCORE}}</strong><small>/ 100 · {{DEPLOYMENT_STATUS}}</small></article>
+      </div>
+      <div class="gate" role="status">전체 판정: <span>{{OVERALL_GATE_STATUS}}</span></div>
+    </section>
+
+    <section class="panel" aria-labelledby="scope-title">
+      <h2 id="scope-title">범위와 기준</h2>
+      <p>{{SCOPE_SUMMARY}}</p>
+      <h3>대표 페이지 유형</h3>
+      <p>{{PAGE_TYPES}}</p>
+      <h3>보호할 기능과 디자인</h3>
+      <p>{{PROTECTED_BEHAVIOR}}</p>
+      <h3>근거와 한계</h3>
+      <p>{{EVIDENCE_LIMITATIONS}}</p>
+    </section>
+
+    <section class="panel" aria-labelledby="findings-title">
+      <h2 id="findings-title">분석 결과</h2>
+      <div class="controls" aria-label="분석 결과 필터">
+        <label>영역
+          <select id="domain-filter">
+            <option value="all">전체</option>
+            <option>SEO</option><option>GEO</option><option>AEO</option>
+            <option>Accessibility</option><option>Performance</option><option>Deployment</option>
+          </select>
+        </label>
+        <label>심각도
+          <select id="severity-filter">
+            <option value="all">전체</option>
+            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </label>
+        <label>상태
+          <select id="status-filter">
+            <option value="all">전체</option>
+            <option>Open</option><option>Planned</option><option>Fixed</option><option>Blocked</option>
+          </select>
+        </label>
+      </div>
+      <p id="filter-status" role="status" aria-live="polite">전체 결과를 표시합니다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>영역</th><th>심각도</th><th>상태</th><th>발견 사항</th><th>근거</th><th>개선 방향</th></tr></thead>
+          <tbody id="findings-body">
+            <tr data-domain="{{FINDING_DOMAIN}}" data-severity="{{FINDING_SEVERITY}}" data-status="{{FINDING_STATUS}}">
+              <td><span class="tag">{{FINDING_DOMAIN}}</span></td>
+              <td class="{{FINDING_SEVERITY_CLASS}}">{{FINDING_SEVERITY}}</td>
+              <td>{{FINDING_STATUS}}</td>
+              <td>{{FINDING_SUMMARY}}</td>
+              <td>{{FINDING_EVIDENCE}}</td>
+              <td>{{FINDING_REMEDIATION}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel locked" aria-labelledby="plan-title">
+      <h2 id="plan-title">파일별 구현 계획</h2>
+      <p><strong>상태:</strong> {{PLAN_LOCK_STATUS}}</p>
+      <div>{{IMPLEMENTATION_PLAN}}</div>
+    </section>
+
+    <section class="panel" aria-labelledby="backup-title">
+      <h2 id="backup-title">백업·롤백</h2>
+      <p><strong>백업 위치:</strong> {{BACKUP_PATH}}</p>
+      <p><strong>무결성 기록:</strong> {{CHECKSUM_OR_MANIFEST}}</p>
+      <p><strong>롤백 방법:</strong> {{ROLLBACK_STEPS}}</p>
+    </section>
+
+    <section class="panel" aria-labelledby="validation-title">
+      <h2 id="validation-title">검증과 회귀 결과</h2>
+      <h3>실행 명령과 도구</h3>
+      <pre>{{VALIDATION_COMMANDS}}</pre>
+      <h3>기능·시각 회귀</h3>
+      <p>{{REGRESSION_RESULTS}}</p>
+      <h3>주장·링크·스키마 진실성</h3>
+      <p>{{TRUTHFULNESS_RESULTS}}</p>
+      <h3>남은 제한 사항</h3>
+      <p>{{REMAINING_LIMITATIONS}}</p>
+    </section>
+
+    <section class="panel" aria-labelledby="extensions-title">
+      <h2 id="extensions-title">선택형 확장 기능</h2>
+      <p>아래 기능은 기본 비활성화 상태입니다. 기능, 영향, 되돌리는 방법을 설명한 뒤 사용자가 선택하고 개별 승인한 경우에만 실행합니다.</p>
+      <div class="extensions">
+        <article class="extension"><h3>Git 버전 관리</h3><p>변경 이력과 원격 복구 지점을 준비합니다.</p><dl><dt>상태</dt><dd>{{GIT_EXTENSION_STATUS}}</dd><dt>외부 영향</dt><dd>선택 시 저장소나 원격 커밋이 생성될 수 있습니다.</dd></dl></article>
+        <article class="extension"><h3>전용 증거 원장</h3><p>각 점수 항목을 검사 명령과 결과에 연결합니다.</p><dl><dt>상태</dt><dd>{{EVIDENCE_LEDGER_STATUS}}</dd><dt>영향</dt><dd>감사 재현성이 높아지는 대신 문서량이 늘어납니다.</dd></dl></article>
+        <article class="extension"><h3>대규모 사이트 표본화</h3><p>페이지 유형별 대표 URL을 선정합니다.</p><dl><dt>상태</dt><dd>{{SAMPLING_STATUS}}</dd><dt>한계</dt><dd>전수검사가 아니므로 범위와 제외 항목을 공개합니다.</dd></dl></article>
+        <article class="extension"><h3>Vercel 배포</h3><p>Preview 검증 후 별도 승인으로 Production에 반영합니다.</p><dl><dt>상태</dt><dd>{{VERCEL_STATUS}}</dd><dt>외부 영향</dt><dd>사이트가 공개되거나 운영 버전이 변경될 수 있습니다.</dd></dl></article>
+        <article class="extension"><h3>Google Search Console</h3><p>소유권을 확인하고 선택적으로 사이트맵을 제출합니다.</p><dl><dt>상태</dt><dd>{{SEARCH_CONSOLE_STATUS}}</dd><dt>한계</dt><dd>색인 관리를 지원하지만 순위나 AI 인용을 보장하지 않습니다.</dd></dl></article>
+        <article class="extension"><h3>Bing Webmaster Tools</h3><p>Bing 검색과 Copilot 발견 상태를 관리합니다.</p><dl><dt>상태</dt><dd>{{BING_STATUS}}</dd><dt>외부 영향</dt><dd>Microsoft 계정에 사이트 속성이 추가될 수 있습니다.</dd></dl></article>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="approval-title">
+      <h2 id="approval-title">승인 기록</h2>
+      <p><strong>분석 승인:</strong> {{ANALYSIS_APPROVAL}}</p>
+      <p><strong>계획 승인:</strong> {{PLAN_APPROVAL}}</p>
+      <p><strong>선택형 외부 작업 승인:</strong> {{EXTERNAL_APPROVALS}}</p>
+    </section>
+  </main>
+
+  <footer>GAS-Optimizer 보고서 · 생성 시각 {{GENERATED_AT}}</footer>
+  <script>
+    const filters = {
+      domain: document.querySelector('#domain-filter'),
+      severity: document.querySelector('#severity-filter'),
+      status: document.querySelector('#status-filter')
+    };
+    const rows = [...document.querySelectorAll('#findings-body tr')];
+    const status = document.querySelector('#filter-status');
+    function applyFilters() {
+      let visible = 0;
+      for (const row of rows) {
+        const match = Object.entries(filters).every(([key, control]) =>
+          control.value === 'all' || row.dataset[key] === control.value
+        );
+        row.hidden = !match;
+        if (match) visible += 1;
+      }
+      status.textContent = `${rows.length}개 중 ${visible}개 결과를 표시합니다.`;
+    }
+    Object.values(filters).forEach(control => control.addEventListener('change', applyFilters));
+    applyFilters();
+  </script>
+</body>
+</html>
