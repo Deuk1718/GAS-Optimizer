@@ -1,287 +1,104 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <title>{{PROJECT_NAME}} GAS 최적화 분석·실행 계획</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #f4f6f3;
-      --surface: #ffffff;
-      --surface-2: #edf2ec;
-      --text: #17211a;
-      --muted: #5f6f63;
-      --line: #cfd8d0;
-      --accent: #176b45;
-      --accent-soft: #dcefe4;
-      --critical: #a31d1d;
-      --high: #b84c12;
-      --medium: #8a6a00;
-      --low: #386a8c;
-      --radius: 18px;
-      --shadow: 0 14px 40px rgba(23, 33, 26, .08);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #101512;
-        --surface: #18201b;
-        --surface-2: #202b24;
-        --text: #edf5ef;
-        --muted: #afbeb3;
-        --line: #35433a;
-        --accent: #74d5a2;
-        --accent-soft: #193e2b;
-        --critical: #ff8989;
-        --high: #ffad79;
-        --medium: #e6cb69;
-        --low: #90c7e8;
-        --shadow: none;
-      }
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.65;
-    }
-    a { color: var(--accent); }
-    a:focus-visible, button:focus-visible, select:focus-visible {
-      outline: 3px solid var(--accent);
-      outline-offset: 3px;
-    }
-    .skip {
-      position: absolute;
-      left: 1rem;
-      top: -5rem;
-      z-index: 10;
-      padding: .7rem 1rem;
-      background: var(--text);
-      color: var(--surface);
-      border-radius: 10px;
-    }
-    .skip:focus { top: 1rem; }
-    header, main, footer { width: min(1180px, calc(100% - 2rem)); margin-inline: auto; }
-    header { padding: 4rem 0 2rem; }
-    .eyebrow { color: var(--accent); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    h1 { max-width: 850px; margin: .35rem 0 1rem; font-size: clamp(2.1rem, 6vw, 4.5rem); line-height: 1.02; }
-    h2 { margin-top: 0; font-size: clamp(1.4rem, 3vw, 2rem); }
-    h3 { margin-bottom: .3rem; }
-    .lead { max-width: 850px; color: var(--muted); font-size: 1.08rem; }
-    .meta, .controls, .scores, .extensions { display: grid; gap: 1rem; }
-    .meta { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-top: 2rem; }
-    .panel, .meta > div, .score, .extension {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-    .meta > div, .score, .extension { padding: 1rem; }
-    .meta dt { color: var(--muted); font-size: .85rem; }
-    .meta dd { margin: .2rem 0 0; font-weight: 750; }
-    main { padding-bottom: 4rem; }
-    section { margin-top: 2rem; scroll-margin-top: 1rem; }
-    .panel { padding: clamp(1rem, 3vw, 2rem); }
-    .scores { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-    .score strong { display: block; font-size: 2.1rem; line-height: 1; margin: .35rem 0; }
-    .score small { color: var(--muted); }
-    .pass { color: var(--accent); }
-    .fail { color: var(--critical); }
-    .blocked { color: var(--high); }
-    .gate {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      margin-top: 1rem;
-      padding: 1rem;
-      background: var(--surface-2);
-      border-radius: 14px;
-      font-weight: 750;
-    }
-    .controls { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem; }
-    label { font-weight: 700; }
-    select {
-      width: 100%;
-      margin-top: .3rem;
-      padding: .7rem;
-      color: var(--text);
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-    }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 850px; }
-    th, td { padding: .8rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-    th { color: var(--muted); font-size: .85rem; }
-    .tag { display: inline-block; padding: .2rem .55rem; border-radius: 999px; background: var(--surface-2); font-weight: 750; font-size: .82rem; }
-    .critical { color: var(--critical); }
-    .high { color: var(--high); }
-    .medium { color: var(--medium); }
-    .low { color: var(--low); }
-    .locked { border: 2px dashed var(--line); background: var(--surface-2); }
-    .extensions { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-    .extension p { color: var(--muted); }
-    .extension dl { margin-bottom: 0; }
-    .extension dt { margin-top: .65rem; font-weight: 800; }
-    .extension dd { margin-left: 0; color: var(--muted); }
-    pre { overflow: auto; padding: 1rem; background: var(--surface-2); border-radius: 12px; white-space: pre-wrap; }
-    footer { padding: 2rem 0 4rem; color: var(--muted); }
-    [hidden] { display: none !important; }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#101914">
+<title>{{PROJECT_NAME}} GAS 최적화 분석·실행 보고서</title>
+<style>
+:root{--bg:#0e1511;--panel:#151f19;--panel2:#1b2820;--ink:#edf5ef;--muted:#98aa9d;--line:#2a3a30;--green:#3fd49a;--lime:#caff68;--yellow:#f4c95d;--orange:#f38b5b;--red:#ff6b6b;--blue:#73a7ff;--r:20px;--shadow:0 24px 80px rgba(0,0,0,.28)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% -10%,#153a2b 0,transparent 31%),var(--bg);color:var(--ink);font:14px/1.58 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,select{font:inherit}a{color:inherit}.skip{position:fixed;left:16px;top:-80px;z-index:100;padding:10px 14px;border-radius:10px;background:var(--lime);color:#142018;font-weight:900}.skip:focus{top:16px}.layout{width:min(1420px,calc(100% - 32px));margin:auto;display:grid;grid-template-columns:240px minmax(0,1fr);gap:34px}.sidebar{position:sticky;top:0;height:100vh;padding:30px 0;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:11px;font-weight:900;letter-spacing:-.03em}.brandMark{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:var(--lime);color:#142018;font-weight:950}.brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:.12em;text-transform:uppercase}.nav{display:grid;gap:4px;margin-top:38px}.nav a{padding:9px 11px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:12px;font-weight:750}.nav a:hover,.nav a.active{background:var(--panel2);color:var(--ink)}.sidefoot{margin-top:auto;padding:14px;border:1px solid var(--line);border-radius:14px;color:var(--muted);font-size:10px}.sidefoot b{display:block;color:var(--lime);margin-bottom:3px}.main{min-width:0;padding:42px 0 90px}.hero{position:relative;overflow:hidden;padding:42px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(135deg,#18261e,#101813);box-shadow:var(--shadow)}.hero:after{content:"AUDIT";position:absolute;right:-15px;bottom:-80px;font-size:150px;font-weight:950;letter-spacing:-.08em;color:#caff6808}.eyebrow,.status{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:6px 10px;color:var(--green);font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.status{color:var(--yellow);border-color:#6d5b28;background:#f4c95d10}.hero h1{max-width:930px;margin:20px 0 16px;font-size:clamp(40px,6vw,76px);line-height:.98;letter-spacing:-.065em}.hero p{max-width:830px;color:var(--muted);font-size:17px}.heroActions{display:flex;gap:9px;flex-wrap:wrap;margin-top:28px}.btn{border:1px solid var(--line);border-radius:11px;padding:9px 12px;background:var(--panel2);color:var(--ink);cursor:pointer;text-decoration:none;font-size:11px;font-weight:850}.btn.primary{background:var(--lime);border-color:var(--lime);color:#142018}.btn:focus-visible,.filter:focus-visible,select:focus-visible,.nav a:focus-visible{outline:3px solid var(--lime);outline-offset:3px}.stamp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:30px}.stamp div{padding:14px;border:1px solid var(--line);border-radius:14px;background:#0d1510aa}.stamp b{display:block;font-size:18px}.stamp span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.section{padding-top:70px;scroll-margin-top:18px}.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:22px}.sectionHead h2{margin:4px 0 0;font-size:34px;letter-spacing:-.045em}.sectionHead p{max-width:590px;margin:0;color:var(--muted)}.kicker{color:var(--green);font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase}.scoreGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.score{position:relative;overflow:hidden;padding:22px;border:1px solid var(--line);border-radius:20px;background:var(--panel)}.scoreTop{display:flex;align-items:start;justify-content:space-between;gap:10px}.score h3{margin:0;font-size:17px}.score p{min-height:42px;margin:8px 0 18px;color:var(--muted);font-size:11px}.dial{position:relative;width:70px;height:70px;flex:0 0 70px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--dial) calc(var(--score)*1%),#29382e 0)}.dial:before{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--panel)}.dial b{position:relative;font-size:19px}.bar{height:7px;overflow:hidden;border-radius:99px;background:#2a382f}.bar i{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--green),var(--lime));transition:width .8s ease}.scoreMeta{display:flex;justify-content:space-between;margin-top:7px;color:var(--muted);font-size:9px}.overall{margin-top:13px;padding:25px;border:1px solid #577240;border-radius:20px;background:linear-gradient(110deg,#16231a,#22301c)}.overallRow{display:flex;align-items:center;gap:24px}.overall strong{font-size:55px;letter-spacing:-.06em;color:var(--lime)}.overall h3{margin:0;font-size:21px}.overall p{margin:5px 0 0;color:#b7c8ba}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.metric strong{display:block;font-size:25px;letter-spacing:-.04em}.metric span{color:var(--muted);font-size:10px}.metric.good strong{color:var(--green)}.metric.bad strong{color:var(--red)}.callout{margin-top:14px;padding:18px 20px;border:1px solid #65422e;border-radius:16px;background:#f38b5b0d;color:#dfb9a5}.callout b{color:var(--orange)}.rubric,.priorityGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.rubricCard,.priority,.caveat,.testCard,.sourceCard,.extension{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}.rubricCard h3,.priority h3{margin:0 0 12px}.rubricCard ul,.priority ol{margin:0;padding-left:18px;color:var(--muted)}.rubricCard li+li,.priority li+li{margin-top:7px}.priority b{display:inline-grid;width:34px;height:34px;place-items:center;border-radius:10px;background:var(--lime);color:#152018}.priority h3{margin-top:14px}.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}.filter{padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);cursor:pointer;font-size:10px;font-weight:850}.filter.on{background:var(--lime);border-color:var(--lime);color:#122017}.filters select{border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--panel);color:var(--ink);font-size:10px}.filterStatus{margin-left:auto;color:var(--muted);font-size:10px;align-self:center}.issueWrap,.fileTable{overflow:auto;border:1px solid var(--line);border-radius:18px;background:var(--panel)}table{width:100%;border-collapse:collapse;min-width:880px}th,td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{position:sticky;top:0;background:#1a271f;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase}td{font-size:11px}tr:last-child td{border-bottom:0}.pill{display:inline-flex;padding:4px 7px;border-radius:99px;font-size:9px;font-weight:900}.pill.critical{background:#ff6b6b20;color:#ff9090}.pill.high{background:#f38b5b20;color:#ffad87}.pill.medium{background:#f4c95d20;color:#f4d77d}.pill.low{background:#73a7ff20;color:#9ac1ff}.cat{color:var(--green);font-weight:850}.evidence,.caveat,.extension p,.testCard span,.sourceCard span{color:var(--muted)}.caveats,.sourceGrid,.testGrid,.extensions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.caveat b,.testCard b,.sourceCard b,.extension h3{display:block;margin:0 0 5px;color:var(--ink);font-size:15px}.gate{padding:28px;border:1px solid #5a713a;border-radius:22px;background:linear-gradient(135deg,#1c2a1d,#121a14)}.gateFlow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.gateStep{padding:17px;border:1px solid var(--line);border-radius:14px;background:#0f1712}.gateStep.current{border-color:var(--green)}.gateStep.locked{opacity:.65}.gateStep span{color:var(--green);font-size:9px;font-weight:900;letter-spacing:.1em}.gateStep h3{margin:7px 0}.gateStep p{margin:0;color:var(--muted);font-size:10px}.approvalText{margin-top:16px;padding:13px 15px;border:1px dashed #6b8750;border-radius:12px;color:var(--lime);font-weight:800}.sourceCard{display:block;text-decoration:none}.sourceCard:hover{border-color:var(--green)}.gateMatrix{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.gateMetric{padding:17px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}.gateMetricTop{display:flex;align-items:center;justify-content:space-between;gap:10px}.gateMetric h3{margin:0;font-size:15px}.gateMetric strong{font-size:22px;color:var(--lime)}.gateMetric p{margin:8px 0 0;color:var(--muted);font-size:10px}.forecast{display:flex;align-items:center;gap:10px;margin-top:12px}.forecast i{flex:1;height:7px;overflow:hidden;border-radius:99px;background:#2a382f}.forecast i:after{content:"";display:block;width:var(--forecast);height:100%;background:linear-gradient(90deg,var(--green),var(--lime))}.gateRule{margin-top:13px;padding:16px 18px;border:1px solid #80534a;border-radius:14px;background:#ff6b6b0d;color:#e7b4aa}.gateRule b{color:var(--red)}.planList{display:grid;gap:12px}.planPhase{display:grid;grid-template-columns:72px 1fr;gap:18px;padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}.phaseNo{width:58px;height:58px;display:grid;place-items:center;border-radius:17px;background:var(--lime);color:#142018;font-size:16px;font-weight:950}.phaseHead{display:flex;align-items:start;justify-content:space-between;gap:15px}.phaseHead h3{margin:0;font-size:20px}.phaseHead span{padding:5px 8px;border-radius:99px;background:#3fd49a15;color:var(--green);font-size:9px;font-weight:900}.phaseBody{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:14px}.phaseBody h4{margin:0 0 8px;color:var(--green);font-size:10px;letter-spacing:.08em;text-transform:uppercase}.phaseBody ul{margin:0;padding-left:18px;color:var(--muted)}.phaseBody li+li{margin-top:6px}.acceptance{padding:14px;border:1px solid var(--line);border-radius:12px;background:#0e1711}.acceptance b{display:block;margin-bottom:5px;color:var(--lime)}.extension dl{margin:0}.extension dt{margin-top:8px;font-weight:900}.extension dd{margin:0;color:var(--muted)}.footer{margin-top:70px;padding-top:25px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--muted);font-size:10px}[hidden]{display:none!important}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding-bottom:0}.nav{display:flex;overflow:auto;margin-top:18px}.sidefoot{display:none}.scoreGrid,.metrics,.gateMatrix{grid-template-columns:1fr 1fr}.rubric,.priorityGrid{grid-template-columns:1fr}.main{padding-top:16px}}
+@media(max-width:650px){.hero{padding:27px}.hero h1{font-size:41px}.stamp,.scoreGrid,.metrics,.caveats,.sourceGrid,.gateFlow,.gateMatrix,.testGrid,.extensions{grid-template-columns:1fr 1fr}.sectionHead{align-items:start;flex-direction:column}.overallRow{align-items:start;flex-direction:column;gap:5px}.planPhase{grid-template-columns:1fr}.phaseBody{grid-template-columns:1fr}.filterStatus{width:100%;margin-left:0}.footer{flex-direction:column;gap:7px}}
+@media(max-width:420px){.stamp,.scoreGrid,.metrics,.caveats,.sourceGrid,.gateFlow,.gateMatrix,.testGrid,.extensions{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bar i{transition:none}}
+@media print{body{background:#fff;color:#111}.layout{display:block;width:100%}.sidebar,.heroActions,.filters{display:none}.hero,.score,.metric,.rubricCard,.priority,.caveat,.gate,.sourceCard,.overall,.issueWrap,.gateMetric,.planPhase,.testCard,.extension{background:#fff;color:#111;box-shadow:none;break-inside:avoid}.hero p,.score p,.metric span,.rubricCard ul,.priority ol,.caveat,.gateStep p,.sourceCard span,.evidence,.extension p,.testCard span{color:#444}.section{padding-top:35px}.issueWrap{overflow:visible}table{min-width:0}.footer{color:#444}}
+</style>
 </head>
 <body>
-  <a class="skip" href="#main">본문으로 바로가기</a>
-  <header>
-    <div class="eyebrow">GAS-Optimizer · {{REPORT_PHASE}}</div>
-    <h1>{{PROJECT_NAME}}<br>분석·실행 계획</h1>
-    <p class="lead">SEO, GEO, AEO, 접근성, 성능, 배포 준비도를 독립적으로 평가합니다. 여섯 영역 모두 95점 이상이며 차단 문제가 없어야 통과합니다.</p>
-    <dl class="meta">
-      <div><dt>분석 기준</dt><dd>{{AUDIT_DATE}}</dd></div>
-      <div><dt>프로젝트 경로</dt><dd>{{PROJECT_PATH}}</dd></div>
-      <div><dt>기준 URL</dt><dd>{{CANONICAL_URL}}</dd></div>
-      <div><dt>승인 상태</dt><dd>{{APPROVAL_STATUS}}</dd></div>
-    </dl>
-  </header>
+<a class="skip" href="#summary">본문으로 바로가기</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><span class="brandMark" aria-hidden="true">G</span><div>{{PROJECT_NAME}}<small>GAS quality report</small></div></div>
+  <nav class="nav" id="nav" aria-label="보고서 목차">
+    <a href="#summary">요약</a><a href="#final-results">최종 결과</a><a href="#scores">초기 점수</a><a href="#evidence">초기 계측</a><a href="#rubric">평가 기준</a><a href="#issues">보완 항목</a><a href="#priorities">우선순위</a><a href="#guardrails">해석 주의</a><a href="#quality-gate">95점 통과 기준</a><a href="#plan">실행 계획</a><a href="#validation">검증</a><a href="#approval">승인 기록</a><a href="#extensions">선택 기능</a><a href="#sources">근거 문서</a>
+  </nav>
+  <div class="sidefoot"><b>문서 상태</b>{{PHASE_1_STATUS}}<br>{{PHASE_2_STATUS}}<br>{{PHASE_3_STATUS}}</div>
+</aside>
 
-  <main id="main">
-    <section class="panel" aria-labelledby="score-title">
-      <h2 id="score-title">비보상식 95점 게이트</h2>
-      <div class="scores">
-        <article class="score"><span>SEO</span><strong>{{SEO_SCORE}}</strong><small>/ 100 · {{SEO_STATUS}}</small></article>
-        <article class="score"><span>GEO</span><strong>{{GEO_SCORE}}</strong><small>/ 100 · {{GEO_STATUS}}</small></article>
-        <article class="score"><span>AEO</span><strong>{{AEO_SCORE}}</strong><small>/ 100 · {{AEO_STATUS}}</small></article>
-        <article class="score"><span>접근성</span><strong>{{ACCESSIBILITY_SCORE}}</strong><small>/ 100 · {{ACCESSIBILITY_STATUS}}</small></article>
-        <article class="score"><span>성능</span><strong>{{PERFORMANCE_SCORE}}</strong><small>/ 100 · {{PERFORMANCE_STATUS}}</small></article>
-        <article class="score"><span>배포 준비도</span><strong>{{DEPLOYMENT_SCORE}}</strong><small>/ 100 · {{DEPLOYMENT_STATUS}}</small></article>
-      </div>
-      <div class="gate" role="status">전체 판정: <span>{{OVERALL_GATE_STATUS}}</span></div>
-    </section>
+<main class="main" id="main">
+<header class="hero" id="summary">
+  <div><span class="eyebrow">Audit · Plan · Optimize · {{AUDIT_DATE}}</span> <span class="status">{{REPORT_STATUS}}</span></div>
+  <h1>{{HERO_TITLE_LINE_1}}<br>{{HERO_TITLE_LINE_2}}</h1>
+  <p>{{REPORT_SUMMARY}}</p>
+  <div class="heroActions"><a class="btn primary" href="{{PRIMARY_ACTION_URL}}">{{PRIMARY_ACTION_LABEL}}</a><a class="btn" href="#final-results">결과 보기</a><button class="btn" type="button" id="print-report">인쇄·PDF</button></div>
+  <div class="stamp"><div><b>{{AUDITED_ITEM_COUNT}}</b><span>감사 대상</span></div><div><b>{{HTML_ERROR_COUNT}}</b><span>HTML 오류</span></div><div><b>{{PASSED_DOMAIN_COUNT}} / 6</b><span>95점 통과</span></div><div><b>{{MINIMUM_FINAL_SCORE}}</b><span>최저 보수 점수</span></div></div>
+</header>
 
-    <section class="panel" aria-labelledby="scope-title">
-      <h2 id="scope-title">범위와 기준</h2>
-      <p>{{SCOPE_SUMMARY}}</p>
-      <h3>대표 페이지 유형</h3>
-      <p>{{PAGE_TYPES}}</p>
-      <h3>보호할 기능과 디자인</h3>
-      <p>{{PROTECTED_BEHAVIOR}}</p>
-      <h3>근거와 한계</h3>
-      <p>{{EVIDENCE_LIMITATIONS}}</p>
-    </section>
+<section class="section" id="final-results">
+  <div class="sectionHead"><div><div class="kicker">Final Verification</div><h2>최종 결과</h2></div><p>{{FINAL_RESULT_CONTEXT}}</p></div>
+  <div class="overall"><div class="overallRow"><strong>{{FINAL_OVERALL_SCORE}}</strong><div><h3>{{FINAL_GATE_LABEL}}</h3><p>{{FINAL_GATE_SUMMARY}}</p></div></div></div>
+  <div class="gateMatrix" style="margin-top:13px">
+    <article class="gateMetric"><div class="gateMetricTop"><h3>SEO</h3><strong>{{SEO_SCORE}}</strong></div><p>{{SEO_FINAL_EVIDENCE}}</p></article>
+    <article class="gateMetric"><div class="gateMetricTop"><h3>GEO</h3><strong>{{GEO_SCORE}}</strong></div><p>{{GEO_FINAL_EVIDENCE}}</p></article>
+    <article class="gateMetric"><div class="gateMetricTop"><h3>AEO</h3><strong>{{AEO_SCORE}}</strong></div><p>{{AEO_FINAL_EVIDENCE}}</p></article>
+    <article class="gateMetric"><div class="gateMetricTop"><h3>접근성</h3><strong>{{ACCESSIBILITY_SCORE}}</strong></div><p>{{ACCESSIBILITY_FINAL_EVIDENCE}}</p></article>
+    <article class="gateMetric"><div class="gateMetricTop"><h3>성능</h3><strong>{{PERFORMANCE_SCORE}}</strong></div><p>{{PERFORMANCE_FINAL_EVIDENCE}}</p></article>
+    <article class="gateMetric"><div class="gateMetricTop"><h3>배포 준비</h3><strong>{{DEPLOYMENT_SCORE}}</strong></div><p>{{DEPLOYMENT_FINAL_EVIDENCE}}</p></article>
+  </div>
+  <div class="testGrid" style="margin-top:13px"><div class="testCard"><b>{{FINAL_CARD_TITLE}}</b><span>{{FINAL_CARD_CONTENT}}</span></div><!-- 최종 검증 카드마다 .testCard를 복제 --></div>
+</section>
 
-    <section class="panel" aria-labelledby="findings-title">
-      <h2 id="findings-title">분석 결과</h2>
-      <div class="controls" aria-label="분석 결과 필터">
-        <label>영역
-          <select id="domain-filter">
-            <option value="all">전체</option>
-            <option>SEO</option><option>GEO</option><option>AEO</option>
-            <option>Accessibility</option><option>Performance</option><option>Deployment</option>
-          </select>
-        </label>
-        <label>심각도
-          <select id="severity-filter">
-            <option value="all">전체</option>
-            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
-          </select>
-        </label>
-        <label>상태
-          <select id="status-filter">
-            <option value="all">전체</option>
-            <option>Open</option><option>Planned</option><option>Fixed</option><option>Blocked</option>
-          </select>
-        </label>
-      </div>
-      <p id="filter-status" role="status" aria-live="polite">전체 결과를 표시합니다.</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>영역</th><th>심각도</th><th>상태</th><th>발견 사항</th><th>근거</th><th>개선 방향</th></tr></thead>
-          <tbody id="findings-body">
-            <tr data-domain="{{FINDING_DOMAIN}}" data-severity="{{FINDING_SEVERITY}}" data-status="{{FINDING_STATUS}}">
-              <td><span class="tag">{{FINDING_DOMAIN}}</span></td>
-              <td class="{{FINDING_SEVERITY_CLASS}}">{{FINDING_SEVERITY}}</td>
-              <td>{{FINDING_STATUS}}</td>
-              <td>{{FINDING_SUMMARY}}</td>
-              <td>{{FINDING_EVIDENCE}}</td>
-              <td>{{FINDING_REMEDIATION}}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+<section class="section" id="scores">
+  <div class="sectionHead"><div><div class="kicker">Baseline Assessment</div><h2>최적화 전 정량 점수</h2></div><p>{{BASELINE_SCORE_CONTEXT}}</p></div>
+  <div class="scoreGrid">
+    <article class="score" style="--score:{{SEO_BASELINE_SCORE}};--dial:var(--green)"><div class="scoreTop"><div><h3>SEO</h3><p>{{SEO_BASELINE_NOTE}}</p></div><div class="dial"><b>{{SEO_BASELINE_SCORE}}</b></div></div><div class="bar"><i data-width="{{SEO_BASELINE_SCORE}}%"></i></div><div class="scoreMeta"><span>초기 {{SEO_BASELINE_SCORE}}</span><span>목표 95+</span></div></article>
+    <article class="score" style="--score:{{GEO_BASELINE_SCORE}};--dial:var(--blue)"><div class="scoreTop"><div><h3>GEO</h3><p>{{GEO_BASELINE_NOTE}}</p></div><div class="dial"><b>{{GEO_BASELINE_SCORE}}</b></div></div><div class="bar"><i data-width="{{GEO_BASELINE_SCORE}}%"></i></div><div class="scoreMeta"><span>초기 {{GEO_BASELINE_SCORE}}</span><span>목표 95+</span></div></article>
+    <article class="score" style="--score:{{AEO_BASELINE_SCORE}};--dial:var(--lime)"><div class="scoreTop"><div><h3>AEO</h3><p>{{AEO_BASELINE_NOTE}}</p></div><div class="dial"><b>{{AEO_BASELINE_SCORE}}</b></div></div><div class="bar"><i data-width="{{AEO_BASELINE_SCORE}}%"></i></div><div class="scoreMeta"><span>초기 {{AEO_BASELINE_SCORE}}</span><span>목표 95+</span></div></article>
+    <article class="score" style="--score:{{ACCESSIBILITY_BASELINE_SCORE}};--dial:var(--yellow)"><div class="scoreTop"><div><h3>접근성</h3><p>{{ACCESSIBILITY_BASELINE_NOTE}}</p></div><div class="dial"><b>{{ACCESSIBILITY_BASELINE_SCORE}}</b></div></div><div class="bar"><i data-width="{{ACCESSIBILITY_BASELINE_SCORE}}%"></i></div><div class="scoreMeta"><span>초기 {{ACCESSIBILITY_BASELINE_SCORE}}</span><span>목표 95+</span></div></article>
+    <article class="score" style="--score:{{PERFORMANCE_BASELINE_SCORE}};--dial:var(--green)"><div class="scoreTop"><div><h3>성능</h3><p>{{PERFORMANCE_BASELINE_NOTE}}</p></div><div class="dial"><b>{{PERFORMANCE_BASELINE_SCORE}}</b></div></div><div class="bar"><i data-width="{{PERFORMANCE_BASELINE_SCORE}}%"></i></div><div class="scoreMeta"><span>초기 {{PERFORMANCE_BASELINE_SCORE}}</span><span>목표 95+</span></div></article>
+    <article class="score" style="--score:{{DEPLOYMENT_BASELINE_SCORE}};--dial:var(--orange)"><div class="scoreTop"><div><h3>배포 준비</h3><p>{{DEPLOYMENT_BASELINE_NOTE}}</p></div><div class="dial"><b>{{DEPLOYMENT_BASELINE_SCORE}}</b></div></div><div class="bar"><i data-width="{{DEPLOYMENT_BASELINE_SCORE}}%"></i></div><div class="scoreMeta"><span>초기 {{DEPLOYMENT_BASELINE_SCORE}}</span><span>목표 95+</span></div></article>
+  </div>
+  <div class="overall"><div class="overallRow"><strong>{{BASELINE_OVERALL_SCORE}}</strong><div><h3>{{BASELINE_GATE_LABEL}}</h3><p>{{BASELINE_GATE_SUMMARY}}</p></div></div></div>
+</section>
 
-    <section class="panel locked" aria-labelledby="plan-title">
-      <h2 id="plan-title">파일별 구현 계획</h2>
-      <p><strong>상태:</strong> {{PLAN_LOCK_STATUS}}</p>
-      <div>{{IMPLEMENTATION_PLAN}}</div>
-    </section>
+<section class="section" id="evidence"><div class="sectionHead"><div><div class="kicker">Baseline Evidence</div><h2>최적화 전 상태 계측</h2></div><p>{{EVIDENCE_CONTEXT}}</p></div><div class="metrics"><div class="metric {{METRIC_STATE}}"><strong>{{METRIC_VALUE}}</strong><span>{{METRIC_LABEL}}</span></div><!-- 계측 항목마다 .metric을 복제 --></div><div class="callout"><b>가장 큰 리스크:</b> {{PRIMARY_RISK}}</div></section>
 
-    <section class="panel" aria-labelledby="backup-title">
-      <h2 id="backup-title">백업·롤백</h2>
-      <p><strong>백업 위치:</strong> {{BACKUP_PATH}}</p>
-      <p><strong>무결성 기록:</strong> {{CHECKSUM_OR_MANIFEST}}</p>
-      <p><strong>롤백 방법:</strong> {{ROLLBACK_STEPS}}</p>
-    </section>
+<section class="section" id="rubric"><div class="sectionHead"><div><div class="kicker">Scoring Method</div><h2>영역별 평가 기준</h2></div><p>{{RUBRIC_CONTEXT}}</p></div><div class="rubric"><article class="rubricCard"><h3>SEO · {{SEO_BASELINE_SCORE}}/100</h3><ul>{{SEO_RUBRIC_ITEMS}}</ul></article><article class="rubricCard"><h3>GEO · {{GEO_BASELINE_SCORE}}/100</h3><ul>{{GEO_RUBRIC_ITEMS}}</ul></article><article class="rubricCard"><h3>AEO · {{AEO_BASELINE_SCORE}}/100</h3><ul>{{AEO_RUBRIC_ITEMS}}</ul></article></div></section>
 
-    <section class="panel" aria-labelledby="validation-title">
-      <h2 id="validation-title">검증과 회귀 결과</h2>
-      <h3>실행 명령과 도구</h3>
-      <pre>{{VALIDATION_COMMANDS}}</pre>
-      <h3>기능·시각 회귀</h3>
-      <p>{{REGRESSION_RESULTS}}</p>
-      <h3>주장·링크·스키마 진실성</h3>
-      <p>{{TRUTHFULNESS_RESULTS}}</p>
-      <h3>남은 제한 사항</h3>
-      <p>{{REMAINING_LIMITATIONS}}</p>
-    </section>
+<section class="section" id="issues">
+  <div class="sectionHead"><div><div class="kicker">Gap Register</div><h2>수정·보완 항목</h2></div><p>{{ISSUE_REGISTER_CONTEXT}}</p></div>
+  <div class="filters" id="severityFilters"><button class="filter on" type="button" data-sev="all">전체</button><button class="filter" type="button" data-sev="critical">Critical</button><button class="filter" type="button" data-sev="high">High</button><button class="filter" type="button" data-sev="medium">Medium</button><button class="filter" type="button" data-sev="low">Low</button><select id="categoryFilter" aria-label="영역 필터"><option value="all">모든 영역</option><option>SEO</option><option>GEO</option><option>AEO</option><option>접근성</option><option>성능</option><option>배포</option></select><select id="statusFilter" aria-label="상태 필터"><option value="all">모든 상태</option><option>Open</option><option>Planned</option><option>Fixed</option><option>Blocked</option></select><span class="filterStatus" id="filterStatus" role="status" aria-live="polite"></span></div>
+  <div class="issueWrap"><table><thead><tr><th>심각도</th><th>영역</th><th>상태</th><th>항목</th><th>현재 증거</th><th>보완 방향</th></tr></thead><tbody id="issueBody"><tr data-sev="{{FINDING_SEVERITY_CLASS}}" data-cat="{{FINDING_DOMAIN}}" data-status="{{FINDING_STATUS}}"><td><span class="pill {{FINDING_SEVERITY_CLASS}}">{{FINDING_SEVERITY}}</span></td><td><span class="cat">{{FINDING_DOMAIN}}</span></td><td>{{FINDING_STATUS}}</td><td><b>{{FINDING_SUMMARY}}</b></td><td class="evidence">{{FINDING_EVIDENCE}}</td><td>{{FINDING_REMEDIATION}}</td></tr><!-- 발견 항목마다 tr을 복제 --></tbody></table></div>
+</section>
 
-    <section class="panel" aria-labelledby="extensions-title">
-      <h2 id="extensions-title">선택형 확장 기능</h2>
-      <p>아래 기능은 기본 비활성화 상태입니다. 기능, 영향, 되돌리는 방법을 설명한 뒤 사용자가 선택하고 개별 승인한 경우에만 실행합니다.</p>
-      <div class="extensions">
-        <article class="extension"><h3>Git 버전 관리</h3><p>변경 이력과 원격 복구 지점을 준비합니다.</p><dl><dt>상태</dt><dd>{{GIT_EXTENSION_STATUS}}</dd><dt>외부 영향</dt><dd>선택 시 저장소나 원격 커밋이 생성될 수 있습니다.</dd></dl></article>
-        <article class="extension"><h3>전용 증거 원장</h3><p>각 점수 항목을 검사 명령과 결과에 연결합니다.</p><dl><dt>상태</dt><dd>{{EVIDENCE_LEDGER_STATUS}}</dd><dt>영향</dt><dd>감사 재현성이 높아지는 대신 문서량이 늘어납니다.</dd></dl></article>
-        <article class="extension"><h3>대규모 사이트 표본화</h3><p>페이지 유형별 대표 URL을 선정합니다.</p><dl><dt>상태</dt><dd>{{SAMPLING_STATUS}}</dd><dt>한계</dt><dd>전수검사가 아니므로 범위와 제외 항목을 공개합니다.</dd></dl></article>
-        <article class="extension"><h3>Vercel 배포</h3><p>Preview 검증 후 별도 승인으로 Production에 반영합니다.</p><dl><dt>상태</dt><dd>{{VERCEL_STATUS}}</dd><dt>외부 영향</dt><dd>사이트가 공개되거나 운영 버전이 변경될 수 있습니다.</dd></dl></article>
-        <article class="extension"><h3>Google Search Console</h3><p>소유권을 확인하고 선택적으로 사이트맵을 제출합니다.</p><dl><dt>상태</dt><dd>{{SEARCH_CONSOLE_STATUS}}</dd><dt>한계</dt><dd>색인 관리를 지원하지만 순위나 AI 인용을 보장하지 않습니다.</dd></dl></article>
-        <article class="extension"><h3>Bing Webmaster Tools</h3><p>Bing 검색과 Copilot 발견 상태를 관리합니다.</p><dl><dt>상태</dt><dd>{{BING_STATUS}}</dd><dt>외부 영향</dt><dd>Microsoft 계정에 사이트 속성이 추가될 수 있습니다.</dd></dl></article>
-      </div>
-    </section>
+<section class="section" id="priorities"><div class="sectionHead"><div><div class="kicker">Remediation Priorities</div><h2>우선순위</h2></div><p>{{PRIORITY_CONTEXT}}</p></div><div class="priorityGrid"><article class="priority"><b>{{PRIORITY_LABEL}}</b><h3>{{PRIORITY_TITLE}}</h3><ol>{{PRIORITY_ITEMS}}</ol></article><!-- 우선순위 묶음마다 .priority를 복제 --></div></section>
 
-    <section class="panel" aria-labelledby="approval-title">
-      <h2 id="approval-title">승인 기록</h2>
-      <p><strong>분석 승인:</strong> {{ANALYSIS_APPROVAL}}</p>
-      <p><strong>계획 승인:</strong> {{PLAN_APPROVAL}}</p>
-      <p><strong>선택형 외부 작업 승인:</strong> {{EXTERNAL_APPROVALS}}</p>
-    </section>
-  </main>
+<section class="section" id="guardrails"><div class="sectionHead"><div><div class="kicker">Interpretation Guardrails</div><h2>과장하지 말아야 할 점</h2></div></div><div class="caveats"><div class="caveat"><b>{{CAVEAT_TITLE}}</b>{{CAVEAT_CONTENT}}</div><!-- 주의사항마다 .caveat를 복제 --></div></section>
 
-  <footer>GAS-Optimizer 보고서 · 생성 시각 {{GENERATED_AT}}</footer>
-  <script>
-    const filters = {
-      domain: document.querySelector('#domain-filter'),
-      severity: document.querySelector('#severity-filter'),
-      status: document.querySelector('#status-filter')
-    };
-    const rows = [...document.querySelectorAll('#findings-body tr')];
-    const status = document.querySelector('#filter-status');
-    function applyFilters() {
-      let visible = 0;
-      for (const row of rows) {
-        const match = Object.entries(filters).every(([key, control]) =>
-          control.value === 'all' || row.dataset[key] === control.value
-        );
-        row.hidden = !match;
-        if (match) visible += 1;
-      }
-      status.textContent = `${rows.length}개 중 ${visible}개 결과를 표시합니다.`;
-    }
-    Object.values(filters).forEach(control => control.addEventListener('change', applyFilters));
-    applyFilters();
-  </script>
+<section class="section" id="quality-gate"><div class="sectionHead"><div><div class="kicker">Non-Compensating Gate</div><h2>각 영역 95점 이상 통과 기준</h2></div><p>평균으로 부족한 영역을 상쇄하지 않습니다. 여섯 영역 중 하나라도 95점 미만이거나 Critical·High 미해결 항목이 남으면 통과하지 않습니다.</p></div><div class="gateMatrix"><article class="gateMetric"><div class="gateMetricTop"><h3>{{GATE_DOMAIN}}</h3><strong>{{GATE_BASELINE}} → 95+</strong></div><p>{{GATE_CRITERIA}}</p><div class="forecast" style="--forecast:95%"><span>목표</span><i></i></div></article><!-- 여섯 영역마다 .gateMetric을 복제 --></div><div class="gateRule"><b>강제 중단 조건:</b> 개별 점수 95 미만, Critical 또는 High 미해결, HTML 오류, 깨진 주요 링크, 주요 기능 회귀, 허위 구조화 데이터, 필수 검증 `[blocked]` 중 하나라도 존재하면 통과를 선언하지 않습니다.</div></section>
+
+<section class="section" id="plan"><div class="sectionHead"><div><div class="kicker">Approved Analysis · Proposed Execution</div><h2>최적화 실행 계획</h2></div><p>{{PLAN_CONTEXT}}</p></div><div class="planList"><article class="planPhase"><div class="phaseNo">{{PHASE_NUMBER}}</div><div><div class="phaseHead"><h3>{{PHASE_TITLE}}</h3><span>{{PHASE_TAG}}</span></div><div class="phaseBody"><div><h4>작업</h4><ul>{{PHASE_TASKS}}</ul></div><div class="acceptance"><b>수용 기준</b>{{PHASE_ACCEPTANCE}}</div></div></div></article><!-- 승인된 단계마다 .planPhase를 복제 --></div><div class="sectionHead" style="margin-top:38px"><div><div class="kicker">File-Level Scope</div><h2>예상 파일 변경 범위</h2></div></div><div class="fileTable"><table><thead><tr><th>파일</th><th>역할</th><th>예상 변경</th><th>검증</th></tr></thead><tbody><tr><td><code>{{FILE_PATH}}</code></td><td>{{FILE_ROLE}}</td><td>{{FILE_CHANGE}}</td><td>{{FILE_VALIDATION}}</td></tr><!-- 파일마다 tr을 복제 --></tbody></table></div></section>
+
+<section class="section" id="validation"><div class="sectionHead"><div><div class="kicker">Verification Matrix</div><h2>최종 검증 묶음</h2></div><p>{{VALIDATION_CONTEXT}}</p></div><div class="testGrid"><div class="testCard"><b>{{VALIDATION_TITLE}}</b><span>{{VALIDATION_RESULT}}</span></div><!-- 검증 묶음마다 .testCard를 복제 --></div><div class="callout"><b>백업:</b> {{BACKUP_PATH}} · <b>무결성:</b> {{CHECKSUM_OR_MANIFEST}} · <b>롤백:</b> {{ROLLBACK_STEPS}}</div></section>
+
+<section class="section" id="approval"><div class="sectionHead"><div><div class="kicker">Approval Record</div><h2>승인과 실행 기록</h2></div><p>분석 승인과 계획 승인을 순서대로 기록합니다. 승인 전에는 다음 단계의 변경을 시작하지 않습니다.</p></div><div class="gate"><div class="gateFlow"><div class="gateStep {{ANALYSIS_APPROVAL_CLASS}}"><span>PHASE 1</span><h3>분석 승인</h3><p>{{ANALYSIS_APPROVAL}}</p></div><div class="gateStep {{PLAN_APPROVAL_CLASS}}"><span>PHASE 2</span><h3>계획 승인</h3><p>{{PLAN_APPROVAL}}</p></div><div class="gateStep {{EXECUTION_STATUS_CLASS}}"><span>PHASE 3</span><h3>최적화·검증</h3><p>{{EXECUTION_STATUS}}</p></div></div><div class="approvalText">{{APPROVAL_SUMMARY}}</div></div></section>
+
+<section class="section" id="extensions"><div class="sectionHead"><div><div class="kicker">Optional Extensions</div><h2>선택형 확장 기능</h2></div><p>기본 비활성화 상태입니다. 필요성, 변경 대상, 외부 영향과 되돌리는 방법을 설명한 뒤 개별 승인된 항목만 실행합니다.</p></div><div class="extensions"><article class="extension"><h3>{{EXTENSION_NAME}}</h3><p>{{EXTENSION_DESCRIPTION}}</p><dl><dt>상태</dt><dd>{{EXTENSION_STATUS}}</dd><dt>외부 영향</dt><dd>{{EXTENSION_IMPACT}}</dd><dt>되돌리기</dt><dd>{{EXTENSION_ROLLBACK}}</dd></dl></article><!-- 선택 기능마다 .extension을 복제 --></div><div class="approvalText">선택형 외부 작업 승인: {{EXTERNAL_APPROVALS}}</div></section>
+
+<section class="section" id="sources"><div class="sectionHead"><div><div class="kicker">Authoritative References</div><h2>평가 근거 문서</h2></div><p>공식 문서를 우선 사용하고 제3자식 최적화 요령은 보조 자료로만 다룹니다.</p></div><div class="sourceGrid"><a class="sourceCard" href="{{SOURCE_URL}}" target="_blank" rel="noopener"><b>{{SOURCE_TITLE}}</b><span>{{SOURCE_TYPE}}</span></a><!-- 근거 문서마다 .sourceCard를 복제 --></div></section>
+
+<footer class="footer"><span>{{PROJECT_NAME}} · GAS Optimization Report</span><span>{{REPORT_STATUS}} · {{GENERATED_AT}}</span></footer>
+</main>
+</div>
+<script>
+const bars=[...document.querySelectorAll('.bar i')];requestAnimationFrame(()=>bars.forEach(bar=>{bar.style.width=bar.dataset.width}));
+const issueRows=[...document.querySelectorAll('#issueBody tr')],categoryFilter=document.getElementById('categoryFilter'),statusFilter=document.getElementById('statusFilter'),filterStatus=document.getElementById('filterStatus');let currentSeverity='all';
+function applyIssueFilters(){let visible=0;for(const row of issueRows){const matchSeverity=currentSeverity==='all'||row.dataset.sev===currentSeverity;const matchCategory=categoryFilter.value==='all'||row.dataset.cat===categoryFilter.value;const matchStatus=statusFilter.value==='all'||row.dataset.status===statusFilter.value;row.hidden=!(matchSeverity&&matchCategory&&matchStatus);if(!row.hidden)visible++}filterStatus.textContent=`${issueRows.length}개 중 ${visible}개 표시`}
+document.getElementById('severityFilters').addEventListener('click',event=>{const button=event.target.closest('button[data-sev]');if(!button)return;document.querySelectorAll('.filter').forEach(item=>item.classList.remove('on'));button.classList.add('on');currentSeverity=button.dataset.sev;applyIssueFilters()});categoryFilter.addEventListener('change',applyIssueFilters);statusFilter.addEventListener('change',applyIssueFilters);applyIssueFilters();
+const navLinks=[...document.querySelectorAll('#nav a')],sections=navLinks.map(link=>document.querySelector(link.getAttribute('href'))).filter(Boolean);addEventListener('scroll',()=>{let active=sections[0]?.id;for(const section of sections)if(section.getBoundingClientRect().top<180)active=section.id;navLinks.forEach(link=>link.classList.toggle('active',link.getAttribute('href')==='#'+active))},{passive:true});
+document.getElementById('print-report').addEventListener('click',()=>window.print());
+</script>
 </body>
 </html>

@@ -105,8 +105,10 @@ For every external side effect, give the heads-up before acting even when the ac
 
 ## Report requirements
 
-- Keep analysis and implementation planning in the same dynamic HTML report.
-- Clearly distinguish measured evidence, inferred risk, planned work, and blocked checks.
-- Provide domain and severity filters, six score cards, the non-compensating gate state, approval state, findings, implementation plan, validation results, and optional-extension status.
+- Keep analysis, implementation planning, execution evidence, and final verification in the same dynamic HTML report.
+- Follow the integrated information architecture in `assets/analysis-plan-template.html`: summary, final results, baseline scores, baseline evidence, scoring rubric, filterable findings, priorities, interpretation guardrails, the non-compensating gate, phased plan, file-level scope, validation and rollback, approval history, optional extensions, and authoritative sources.
+- Clearly distinguish measured evidence, inferred risk, planned work, completed work, and blocked checks.
+- Provide severity, domain, and status filtering; six baseline and final score states; the non-compensating gate state; approval state; findings; implementation phases; affected files; validation results; backup and rollback details; and optional-extension status.
+- Preserve the template's self-contained sidebar dashboard, responsive layout, print/PDF mode, keyboard focus treatment, reduced-motion support, and live filter status instead of simplifying it into a static card list.
 - Keep the report usable without external scripts or styles.
 - Do not present local lab observations as field Core Web Vitals.

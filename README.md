@@ -22,6 +22,22 @@ GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근�
 - 기능·시각 회귀와 주장·외부 링크·JSON-LD 진실성 검사
 - 독립 실행 가능한 동적 HTML 분석 보고서 템플릿 제공
 
+## HTML 분석 보고서 예시
+
+아래 화면은 GAS-Optimizer 워크플로를 실제 **Marketing Education** 프로젝트에 적용해 작성한 `analysis-plan.html` 보고서입니다. 단순 목업이 아니라 초기 분석, 두 단계 승인, 최적화, 검증, 배포 결과까지 기록한 실제 사용 예시입니다.
+
+[![GAS-Optimizer Marketing Education 분석 보고서 미리보기](docs/images/marketing-edu-analysis-report.jpg)](docs/images/marketing-edu-analysis-report.jpg)
+
+보고서는 한 HTML 파일 안에서 다음 정보를 함께 관리합니다.
+
+- 최적화 전·후 6개 영역 점수와 비상쇄형 95점 게이트
+- 정적 계측 증거, 평가 기준, 필터 가능한 보완 항목
+- 우선순위, 해석상 주의사항, 단계별 실행 계획과 수용 기준
+- 파일별 변경 범위, 검증 결과, 백업·롤백 정보
+- 분석·계획 승인 기록과 선택형 외부 작업 상태
+
+원본 템플릿은 [`analysis-plan-template.html`](skill/gas-optimizer/assets/analysis-plan-template.html)에 있으며 외부 스타일시트나 JavaScript 없이 단독으로 동작합니다.
+
 ## 품질 게이트
 
 아래 여섯 영역이 **모두 95점 이상**이어야 합니다.
@@ -218,7 +234,9 @@ GAS-Optimizer/
 ├── uninstall.sh / uninstall.ps1
 ├── installers/
 ├── scripts/
-├── docs/INVOCATION.md
+├── docs/
+│   ├── INVOCATION.md
+│   └── images/marketing-edu-analysis-report.jpg
 ├── .github/workflows/
 └── skill/gas-optimizer/
     ├── SKILL.md

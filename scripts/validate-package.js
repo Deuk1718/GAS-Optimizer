@@ -53,6 +53,12 @@ const report = fs.readFileSync(path.join(skillRoot, 'assets', 'analysis-plan-tem
 for (const marker of ['{{SEO_SCORE}}', '{{GEO_SCORE}}', '{{AEO_SCORE}}', '{{ANALYSIS_APPROVAL}}', '{{EXTERNAL_APPROVALS}}']) {
   if (!report.includes(marker)) throw new Error(`Missing report marker: ${marker}`);
 }
+for (const section of ['summary', 'final-results', 'scores', 'evidence', 'rubric', 'issues', 'priorities', 'guardrails', 'quality-gate', 'plan', 'validation', 'approval', 'extensions', 'sources']) {
+  if (!report.includes(`id="${section}"`)) throw new Error(`Missing report section: ${section}`);
+}
+for (const feature of ['prefers-reduced-motion', 'focus-visible', 'aria-live="polite"', '@media print', 'data-sev', 'data-cat', 'data-status']) {
+  if (!report.includes(feature)) throw new Error(`Missing report feature: ${feature}`);
+}
 for (const match of report.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(match[1]);
 
 console.log(JSON.stringify({
