@@ -26,15 +26,28 @@ Optimize crawlable websites without weakening evidence, truthfulness, accessibil
 4. Prefer the project's existing test, lint, build, and audit tools. Plan a small project-specific audit script only where repeatable coverage is missing.
 5. Explain the optional extensions in this skill before offering them. Do not preselect any extension.
 
+## Choose output locations
+
+Before any measurement or directory creation:
+
+1. Detect documentation-directory candidates deterministically: existing project-root directories named exactly `docs`, `Docs`, `documentation`, or `Documentation`. Exclude generated output, dependency/vendor, and build directories from consideration. If exactly one candidate exists, use it; if none exists, default the report to exactly `<project-root>/docs/gas-optimizer/analysis-plan.html`; if two or more candidates exist, ask the user to choose. An explicit user path overrides detection for the current run only.
+2. Default raw evidence to exactly `<project-root>/.gas-optimizer/evidence/<run-id>/`, containing `manifest.json`, `baseline/`, and `final/`.
+3. Display both resolved absolute paths and offer exactly these choices: use defaults, override report path, override evidence path, override both paths. Overrides last for the current run only. Relative report and evidence overrides resolve against `<project-root>`, are normalized, then displayed as absolute paths and classified as project-internal or external before confirmation or warnings.
+4. If the GAS report already exists, ask whether to continue it, create a new report, choose a custom path, or cancel. If the evidence run directory already exists, never merge into or overwrite it; create a new run ID and show the new absolute path for confirmation.
+5. Treat invalid or unwritable paths as blocked until the user chooses another location; do not silently fall back. Allow explicit external paths only after warning that absolute paths may be disclosed in the report and confirming the host can write there.
+6. Store project-internal paths in the report as relative paths. Warn before storing external absolute paths because they disclose local or host-specific filesystem details.
+
 ## Phase 1: Evidence-based analysis
 
 1. Compare source or build-output HTML with the rendered experience. Count meaningful headings, links, page entities, and primary content available without client execution.
 2. Audit all six domains using the common rubric. Add project-specific pass/fail checks when needed, but never lower, replace, or inflate the common criteria.
 3. Validate representative page types, not only the homepage. If the site is too large for practical full coverage and large-site sampling was not selected, ask the user to define the page set.
 4. Check visible claims, important external links, and structured data for alignment and truthfulness.
-5. Create a dynamic analysis report from `assets/analysis-plan-template.html`, normally at the project's established documentation path or `Docs/analysis-plan.html` when no convention exists.
-6. Include baseline scores, earned-versus-possible points, evidence, severity, affected files or URLs, remediation priorities, known limitations, and a locked implementation-plan section.
-7. Stop and request explicit **analysis approval**. Do not modify production source files yet.
+5. Create the confirmed dynamic analysis report from `assets/analysis-plan-template.html`.
+6. Create the confirmed evidence package and write baseline raw artifacts under `<confirmed-evidence-root>/baseline/<category>/` before scoring. Capture all safely persistable raw outputs, including JSON, logs, HTML, traces, and screenshots; save console-only output as text.
+7. Initialize `manifest.json` with run ID, project, report path, timestamps, current phase, tool versions, redacted reproduction commands, environment, artifact-relative paths, status, checksum, and redaction notes. Never persist secrets or PII unredacted; checksum the redacted persisted artifact and record what was removed or omitted.
+8. Include baseline scores, earned-versus-possible points, evidence, severity, affected files or URLs, remediation priorities, known limitations, and a locked implementation-plan section. Required evidence that cannot be produced remains `[blocked]`.
+9. Stop and request explicit **analysis approval**. Do not modify production source files yet.
 
 ## Phase 2: File-level implementation plan
 
@@ -67,14 +80,16 @@ After plan approval:
 - Confirm that structured data matches visible content and parses without critical errors.
 - Validate HTML and run the project's tests, build, audit, and available accessibility or performance tools.
 - If a preferred measurement tool is unavailable, use an honest fallback, label the evidence type, and keep unsupported checks blocked.
+- Store fresh final raw artifacts under `<confirmed-evidence-root>/final/<category>/` without overwriting baseline artifacts. Required evidence that remains unavailable stays `[blocked]`.
 
 ## Phase 5: Iterate and report
 
 1. Rescore from fresh evidence after implementation.
 2. Continue fixing approved-scope failures until all six domains pass or a real blocker prevents further progress.
 3. Never remove a test, change a weight, mark a relevant item N/A, or rewrite a finding merely to reach 95.
-4. Update the dynamic report with before-and-after scores, completed changes, regression results, validation output, remaining limitations, backup location, and rollback instructions.
-5. Completion means quality-gate readiness only. Do not commit, push, deploy, register webmaster properties, or submit sitemaps unless the user separately selects and approves an optional extension.
+4. Finalize `<confirmed-evidence-root>/manifest.json`: update phase, artifact status, checksums, redaction notes, and relative artifact paths for baseline and final evidence.
+5. Update the dynamic report with before-and-after scores, completed changes, regression results, validation output, remaining limitations, backup location, rollback instructions, and source references from findings to raw evidence artifacts.
+6. Completion means quality-gate readiness only. Do not commit, push, deploy, register webmaster properties, or submit sitemaps unless the user separately selects and approves an optional extension.
 
 ## Optional extensions
 
@@ -92,7 +107,7 @@ Proceed?
 ### Offer before optimization
 
 - **Git version control**: review ignore rules and secrets, initialize or connect a repository, and create checkpoints. Explain that this creates local or remote history. Get separate approval before creating a remote repository or pushing.
-- **Dedicated evidence ledger**: attach each rubric item to commands, files, URLs, and outputs. Explain the added documentation cost.
+- **Dedicated evidence ledger**: add enhanced rubric-item mapping from each criterion to commands, files, URLs, and outputs. Explain that this is beyond the mandatory raw evidence package and adds documentation cost.
 - **Large-site sampling**: select representative URLs by page template and disclose that the result is sampled rather than exhaustive.
 
 ### Offer only after the 95-point gate passes
