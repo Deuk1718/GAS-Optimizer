@@ -36,7 +36,35 @@ GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근�
 - 파일별 변경 범위, 검증 결과, 백업·롤백 정보
 - 분석·계획 승인 기록과 선택형 외부 작업 상태
 
-원본 템플릿은 [`analysis-plan-template.html`](skill/gas-optimizer/assets/analysis-plan-template.html)에 있으며 외부 스타일시트나 JavaScript 없이 단독으로 동작합니다.
+원본 템플릿은 [`analysis-plan-template.html`](skill/gas-optimizer/assets/analysis-plan-template.html)에 있으며 외부 스타일시트나 스크립트 없이 단독으로 동작합니다. 필터·상태 갱신 등은 HTML 안의 인라인 JavaScript로 처리합니다.
+
+## 산출물 저장 위치
+
+측정·디렉터리 생성 전에 스킬이 보고서와 원본 증거의 절대 경로를 표시하고 사용자 확인을 받습니다.
+
+**분석 보고서 (`analysis-plan.html`)**
+
+- 프로젝트 루트에 `docs`, `Docs`, `documentation`, `Documentation` 중 **하나만** 있으면 `<해당 디렉터리>/gas-optimizer/analysis-plan.html`에 저장합니다.
+- 후보가 없으면 기본값은 `docs/gas-optimizer/analysis-plan.html`입니다.
+- 후보가 둘 이상이면 사용자가 사용할 문서 디렉터리를 선택합니다.
+- 이미 보고서가 있으면 이어서 작성, 새로 만들기, 사용자 지정 경로, 취소 중에서 선택합니다.
+
+**원본 증거 패키지**
+
+- 기본 위치: `.gas-optimizer/evidence/<run-id>/`
+- 구조: `manifest.json`, `baseline/<category>/`(측정 전), `final/<category>/`(최적화 후). baseline은 final로 덮어쓰지 않습니다.
+- 같은 run-id 디렉터리가 있으면 병합·덮어쓰지 않고 새 run-id를 만들어 경로를 다시 확인합니다.
+- 비밀번호·토큰·쿠키·개인정보 등은 저장 전에 제거(또는 생략)하고, manifest에 기록합니다.
+
+**경로 확인과 재정의(현재 실행만)**
+
+확인 화면에서 네 가지 중 하나를 선택합니다: 기본값 사용, 보고서 경로만 변경, 증거 경로만 변경, 둘 다 변경. 상대 사용자 지정 경로는 `<project-root>`를 기준으로 해석합니다. 재정의는 **이번 실행에만** 적용되며 별도 설정 파일은 만들지 않습니다. 잘못되거나 쓸 수 없는 경로는 조용히 대체하지 않고, 다른 위치를 고를 때까지 `[blocked]`로 남깁니다.
+
+프로젝트 밖의 사용자 지정 절대 경로는 로컬·호스트 파일시스템 정보가 보고서에 노출될 수 있다는 경고 후, 호스트가 해당 위치에 쓸 수 있는지 확인한 뒤에만 허용합니다. 프로젝트 내부 경로는 보고서에 상대 경로로 저장합니다.
+
+**Git과 로컬 생성물**
+
+보고서와 `.gas-optimizer/` 증거는 프로젝트에서 생성된 로컬 산출물입니다. Git 추적·무시 여부는 프로젝트의 `.gitignore` 등 정책을 따르며, 스킬이 자동으로 커밋하거나 제외하지 않습니다.
 
 ## 품질 게이트
 

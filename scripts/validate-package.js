@@ -31,6 +31,19 @@ const frontmatterKeys = [...frontmatter[1].matchAll(/^([a-z][a-z0-9-]*):/gm)].ma
 if (frontmatterKeys.join(',') !== 'name,description') throw new Error(`Canonical frontmatter must contain only name and description, found: ${frontmatterKeys.join(', ')}`);
 if (!frontmatter[1].includes('name: "gas-optimizer"')) throw new Error('Invalid skill name');
 
+for (const marker of [
+  'docs/gas-optimizer/analysis-plan.html',
+  '.gas-optimizer/evidence/',
+  'manifest.json',
+  'baseline/',
+  'final/'
+]) {
+  if (!skill.includes(marker)) throw new Error(`Missing output-storage instruction: ${marker}`);
+}
+const skillRelativeOverrideMarker = 'Relative report and evidence overrides resolve against `<project-root>`, are normalized, then displayed as absolute paths and classified as project-internal or external before confirmation or warnings.';
+const skillRelativeOverrideMatches = skill.match(new RegExp(skillRelativeOverrideMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || [];
+if (skillRelativeOverrideMatches.length !== 1) throw new Error(`SKILL.md must include unique relative override resolution marker: ${skillRelativeOverrideMarker}`);
+
 const rubric = fs.readFileSync(path.join(skillRoot, 'references', 'quality-rubric.md'), 'utf8');
 for (const name of ['SEO', 'GEO', 'AEO', 'Accessibility', 'Performance', 'Deployment readiness']) {
   const marker = `## ${name}: 100 points`;
@@ -50,7 +63,17 @@ for (const host of ['Aside', 'Claude Code', 'Codex', 'Cursor', 'GitHub Copilot']
 }
 
 const report = fs.readFileSync(path.join(skillRoot, 'assets', 'analysis-plan-template.html'), 'utf8');
-for (const marker of ['{{SEO_SCORE}}', '{{GEO_SCORE}}', '{{AEO_SCORE}}', '{{ANALYSIS_APPROVAL}}', '{{EXTERNAL_APPROVALS}}']) {
+for (const marker of [
+  '{{SEO_SCORE}}',
+  '{{GEO_SCORE}}',
+  '{{AEO_SCORE}}',
+  '{{ANALYSIS_APPROVAL}}',
+  '{{EXTERNAL_APPROVALS}}',
+  '{{EVIDENCE_RUN_ID}}',
+  '{{EVIDENCE_ROOT}}',
+  '{{EVIDENCE_MANIFEST}}',
+  '{{FINDING_EVIDENCE_SOURCE}}'
+]) {
   if (!report.includes(marker)) throw new Error(`Missing report marker: ${marker}`);
 }
 for (const section of ['summary', 'final-results', 'scores', 'evidence', 'rubric', 'issues', 'priorities', 'guardrails', 'quality-gate', 'plan', 'validation', 'approval', 'extensions', 'sources']) {
@@ -60,6 +83,13 @@ for (const feature of ['prefers-reduced-motion', 'focus-visible', 'aria-live="po
   if (!report.includes(feature)) throw new Error(`Missing report feature: ${feature}`);
 }
 for (const match of report.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(match[1]);
+
+const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+for (const marker of ['docs/gas-optimizer/analysis-plan.html', '.gas-optimizer/evidence/']) {
+  if (!readme.includes(marker)) throw new Error(`README is missing output-location guidance: ${marker}`);
+}
+const readmeRelativePathMarker = '상대 사용자 지정 경로는 `<project-root>`를 기준으로 해석합니다.';
+if (!readme.includes(readmeRelativePathMarker)) throw new Error(`README is missing relative custom path guidance: ${readmeRelativePathMarker}`);
 
 console.log(JSON.stringify({
   version: fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim(),
