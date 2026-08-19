@@ -3,8 +3,9 @@ param(
     [string]$Command,
     [string]$Target,
     [string]$Scope,
+    [Alias("project-root")]
     [string]$ProjectRoot,
-    [Alias("AccountRoot")]
+    [Alias("AccountRoot", "aside-account-root", "account-root")]
     [string]$AsideAccountRoot,
     [switch]$Yes,
     [Alias("h")]
