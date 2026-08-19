@@ -17,6 +17,7 @@ Optimize crawlable websites without weakening evidence, truthfulness, accessibil
 - When host capabilities or invocation behavior are uncertain, read `references/capability-matrix.md`; unavailable required checks remain `[blocked]`.
 - Require crawlable, meaningful initial HTML. JavaScript may progressively enhance content but must not be the only source of primary content.
 - Do not begin optimization until both approval gates below are satisfied.
+- Treat `quality-gate` and `external-operations-gate` as separate outcomes. Optional external search operations never change the fixed six-domain scores, and selected external operations must not be reported complete unless their provider/action status meets `references/external-search-operations.md`.
 
 ## Establish scope
 
@@ -113,10 +114,17 @@ Proceed?
 ### Offer only after the 95-point gate passes
 
 - **Vercel deployment**: connect or create a project, verify Preview, then request separate approval for Production. Explain public and operational changes.
-- **Google Search Console**: verify ownership and optionally submit the sitemap. Explain that this supports indexing management but does not guarantee rankings or AI citations. Keep verification artifacts unless removal is approved.
-- **Bing Webmaster Tools**: register or import the site and optionally submit the sitemap. Explain its effect on the user's Microsoft webmaster account.
+- **Google Search Console**: offer property registration, ownership verification, sitemap submission, and post-submission verification as separately approved actions. Explain that this supports indexing management but does not guarantee rankings or AI citations. Keep verification artifacts unless removal is approved.
+- **Bing Webmaster Tools**: offer site registration, native ownership verification, Search Console import, sitemap submission, and IndexNow notification as separately approved actions. Import requires separate user Google authorization.
+- **Naver Search Advisor**: offer host-level site registration, ownership verification, sitemap submission, RSS submission, IndexNow notification, and selective manual crawl request as separately approved actions. Explain its effect on the user's Naver webmaster account and Korean search visibility management.
 
-For every external side effect, give the heads-up before acting even when the action is a sensible follow-up. Use relevant account or site skills when available. A user may select none, one, or several extensions; approval for one never authorizes another.
+Advertised provider actions (google): property-registration, ownership-verification, sitemap-submission, post-submission-verification
+Advertised provider actions (bing): site-registration, ownership-verification, search-console-import, sitemap-submission, indexnow-notification
+Advertised provider actions (naver): site-registration, ownership-verification, sitemap-submission, rss-submission, indexnow-notification, manual-crawl-request
+
+All Google, Bing, and Naver search-engine or webmaster operations are optional, off by default, and routed through `references/external-search-operations.md`. Use the common contract before any provider-specific playbook: record preflight, choose execution level, request separate provider/action approval, persist only redacted evidence, and report the provider/action status under `external-operations-gate`.
+
+For every external side effect, give the heads-up before acting even when the action is a sensible follow-up. Use relevant account or site skills when available. A user may select none, one, or several extensions; approval for one never authorizes another. Report `quality-gate` readiness separately from `external-operations-gate` status in the final report.
 
 ## Report requirements
 

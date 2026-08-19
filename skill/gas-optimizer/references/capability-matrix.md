@@ -45,6 +45,19 @@ These improve evidence or enable opt-in extensions but are not universally avail
 
 Before using an optional capability that changes external state, explain the action and obtain the required separate approval.
 
+## External search operation levels
+
+Optional Google, Bing, Naver, and future search-provider operations use the common contract in `external-search-operations.md`. Host support is not universal: a host may support source edits and build commands while lacking official provider APIs, authenticated browser assistance, safe evidence capture, or network access.
+
+| Level | Name | Required host/provider capability | Typical status outcome |
+|---|---|---|---|
+| Level 1 | Official API/MCP | A documented provider API, official CLI, approved MCP tool, or equivalent first-party integration for the selected provider/action. | `completed` or `verified` when provider confirmation is available. |
+| Level 2 | Authenticated-browser assistance | Browser automation or guided browser assistance after the user handles login, 2FA, CAPTCHA, consent, and account recovery. | `assisted`, `completed`, or `verified` depending on provider acceptance and evidence. |
+| Level 3 | Verifiable manual handoff | The agent can provide the official destination, exact user action and value, and safe verification steps, but the user must perform the action. | `manual-required` until user evidence or provider/public confirmation is validated. |
+| Level 4 | Blocked | No safe, authorized, or verifiable execution path is available. | `blocked` with a concrete blocker and retry condition. |
+
+Determine execution level with deterministic downgrade order `1 -> 2 -> 3 -> 4`. Do not claim a host can perform Level 1 or Level 2 merely because another host can. If Level 1 is unavailable, try Level 2 only when browser assistance is supported and approved; if Level 2 is unavailable or unsafe, provide a Level 3 handoff only when the result can be verified; otherwise mark Level 4 blocked.
+
 ## Portability rules
 
 - Keep the canonical `SKILL.md` on the common Agent Skills frontmatter subset: `name` and `description`.
