@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Add adaptive Google, Bing, and Naver external-search operations with four execution levels and a separate external-operations gate.
+- Add a `gas-optimizer` CLI for explicit `install`, `status`, `sync`, `uninstall`, and `version`.
+- Distribute a launcher and versioned skill bundle through Homebrew and Scoop without mutating host skill directories during package install.
+- Keep `install.sh` and `install.ps1` as fallback installers.
+
 ## 1.1.0
 
 - Adopt the Agent Skills open standard as the public distribution model.

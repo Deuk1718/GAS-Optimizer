@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/gas-optimizer-v*.zip dist/gas-optimizer-v*.tar.gz dist/SHA256SUMS.txt dist/packaging/homebrew/gas-optimizer.rb dist/packaging/scoop/gas-optimizer.json --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --title "GAS-Optimizer $GITHUB_REF_NAME" --generate-notes --latest --verify-tag
+            gh release create "$GITHUB_REF_NAME" dist/gas-optimizer-v*.zip dist/gas-optimizer-v*.tar.gz dist/SHA256SUMS.txt dist/packaging/homebrew/gas-optimizer.rb dist/packaging/scoop/gas-optimizer.json --title "GAS-Optimizer $GITHUB_REF_NAME" --generate-notes --latest --verify-tag
           fi
