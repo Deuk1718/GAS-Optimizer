@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- Fix Windows `gas-optimizer` CLI flag binding so `--target`, `--scope`, and `--project-root` work under PowerShell.
+- Keep command output separate from process exit handling so `version` and `status` print correctly.
+
 ## 1.2.0
 
 - Add adaptive Google, Bing, and Naver external-search operations with four execution levels and a separate external-operations gate.
