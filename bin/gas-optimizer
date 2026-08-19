@@ -1,0 +1,437 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: gas-optimizer <command> [options]
+
+Commands:
+  install     Copy the packaged skill into a host location and record it
+  status      Show the package version and recorded installations
+  sync        Reinstall every recorded destination from this package
+  uninstall   Back up and remove a recorded destination
+  version     Print the package version
+
+Options:
+  --target TARGET                 aside, claude, agents, or all
+  --scope SCOPE                   user or project
+  --project-root PATH             Required for project scope
+  --aside-account-root PATH       Aside account root
+  --yes                           Skip uninstall confirmation
+  -h, --help                      Show this help
+
+Package managers install only launcher files and package metadata; they must
+not create, update, back up, or remove user or project skill directories.
+EOF
+}
+
+resolve_dir() {
+  source="$1"
+  while [ -L "$source" ]; do
+    dir="$(CDPATH= cd -- "$(dirname -- "$source")" && pwd)"
+    link="$(readlink "$source")"
+    case "$link" in
+      /*) source="$link" ;;
+      *) source="$dir/$link" ;;
+    esac
+  done
+  CDPATH= cd -- "$(dirname -- "$source")" && pwd
+}
+
+BIN_DIR="$(resolve_dir "${BASH_SOURCE[0]}")"
+PACKAGE_ROOT="$(CDPATH= cd -- "$BIN_DIR/.." && pwd)"
+INSTALLER="$PACKAGE_ROOT/installers/install.sh"
+UNINSTALLER="$PACKAGE_ROOT/installers/uninstall.sh"
+VERSION_FILE="$PACKAGE_ROOT/VERSION"
+STATE_HOME="${GAS_OPTIMIZER_HOME:-$HOME/.gas-optimizer}"
+REGISTRY="$STATE_HOME/installations.json"
+
+TARGET=""
+SCOPE=""
+PROJECT_ROOT=""
+ASIDE_ROOT="${ASIDE_ACCOUNT_ROOT:-}"
+ASSUME_YES=0
+
+die() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+die_usage() {
+  echo "Error: $*" >&2
+  usage >&2
+  exit 2
+}
+
+package_version() {
+  [ -f "$VERSION_FILE" ] || die "VERSION file not found at $VERSION_FILE"
+  tr -d '[:space:]' < "$VERSION_FILE"
+}
+
+require_package() {
+  [ -f "$PACKAGE_ROOT/skill/gas-optimizer/SKILL.md" ] || die "packaged skill not found at $PACKAGE_ROOT/skill/gas-optimizer"
+  [ -f "$INSTALLER" ] || die "installer not found at $INSTALLER"
+  [ -f "$UNINSTALLER" ] || die "uninstaller not found at $UNINSTALLER"
+}
+
+require_jq() {
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "Error: jq is required for gas-optimizer state management. Install jq (Homebrew: brew install jq) and retry. The CLI does not download dependencies." >&2
+    exit 1
+  fi
+}
+
+parse_options() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --target)
+        [ "$#" -ge 2 ] || die_usage "--target requires a value."
+        TARGET="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+        shift 2
+        ;;
+      --scope)
+        [ "$#" -ge 2 ] || die_usage "--scope requires a value."
+        SCOPE="$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')"
+        shift 2
+        ;;
+      --project-root)
+        [ "$#" -ge 2 ] || die_usage "--project-root requires a path."
+        PROJECT_ROOT="$2"
+        shift 2
+        ;;
+      --aside-account-root|--account-root)
+        [ "$#" -ge 2 ] || die_usage "$1 requires a path."
+        ASIDE_ROOT="$2"
+        shift 2
+        ;;
+      --yes)
+        ASSUME_YES=1
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die_usage "unknown option: $1"
+        ;;
+    esac
+  done
+}
+
+prompt_if_missing() {
+  label="$1"
+  prompt="$2"
+  current="$3"
+  if [ -n "$current" ]; then
+    printf '%s\n' "$current"
+    return
+  fi
+  if [ -t 0 ]; then
+    printf '%s' "$prompt" >&2
+    read -r value
+    printf '%s' "$value" | tr '[:upper:]' '[:lower:]'
+  else
+    die_usage "$label is required in non-interactive mode."
+  fi
+}
+
+collect_target_scope() {
+  action="$1"
+  TARGET="$(prompt_if_missing --target "$action target [aside/claude/agents/all]: " "$TARGET")"
+  SCOPE="$(prompt_if_missing --scope "$action scope [user/project]: " "$SCOPE")"
+  case "$TARGET" in aside|claude|agents|all) ;; *) die_usage "invalid target: $TARGET" ;; esac
+  case "$SCOPE" in user|project) ;; *) die_usage "invalid scope: $SCOPE" ;; esac
+  if [ "$SCOPE" = project ]; then
+    [ "$TARGET" != aside ] || die "Aside installation is account-scoped; use --scope user."
+    if [ -z "$PROJECT_ROOT" ]; then
+      if [ -t 0 ]; then
+        printf 'Project root: ' >&2
+        read -r PROJECT_ROOT
+      else
+        die_usage "--project-root is required for project scope."
+      fi
+    fi
+    [ -d "$PROJECT_ROOT" ] || die "project root not found: $PROJECT_ROOT"
+  fi
+}
+
+concrete_targets() {
+  target="$1"
+  scope="$2"
+  if [ "$target" != all ]; then
+    printf '%s\n' "$target"
+    return
+  fi
+  if [ "$scope" = user ]; then
+    printf '%s\n' aside claude agents
+  else
+    printf '%s\n' claude agents
+  fi
+}
+
+destination_for() {
+  target="$1"
+  scope="$2"
+  case "$scope:$target" in
+    user:agents) printf '%s\n' "${AGENT_SKILLS_ROOT:-$HOME/.agents/skills}/gas-optimizer" ;;
+    user:claude) printf '%s\n' "${CLAUDE_SKILLS_ROOT:-$HOME/.claude/skills}/gas-optimizer" ;;
+    user:aside)
+      root="${ASIDE_ROOT:-$HOME/.aside/u/0}"
+      printf '%s\n' "$root/skills/user/gas-optimizer"
+      ;;
+    project:agents) printf '%s\n' "$PROJECT_ROOT/.agents/skills/gas-optimizer" ;;
+    project:claude) printf '%s\n' "$PROJECT_ROOT/.claude/skills/gas-optimizer" ;;
+    *) die "cannot resolve destination for target $target and scope $scope" ;;
+  esac
+}
+
+empty_registry() {
+  printf '%s\n' '{"schemaVersion":1,"installations":[]}'
+}
+
+read_registry() {
+  if [ ! -f "$REGISTRY" ]; then
+    empty_registry
+    return
+  fi
+  jq -e '.schemaVersion == 1 and (.installations | type == "array")' "$REGISTRY" >/dev/null \
+    || die "registry is not a schemaVersion 1 installations document: $REGISTRY"
+  cat "$REGISTRY"
+}
+
+write_registry() {
+  json="$1"
+  mkdir -p "$STATE_HOME"
+  tmp="$STATE_HOME/installations.json.tmp.$$"
+  printf '%s\n' "$json" | jq -e 'if .schemaVersion == 1 and (.installations | type == "array") then . else error("invalid registry") end' > "$tmp" \
+    || { rm -f "$tmp"; die "refusing to write an invalid registry document"; }
+  mv -f "$tmp" "$REGISTRY"
+}
+
+run_installer() {
+  target="$1"
+  scope="$2"
+  extra=()
+  if [ "$scope" = project ]; then
+    extra+=(--project-root "$PROJECT_ROOT")
+  fi
+  if [ -n "$ASIDE_ROOT" ]; then
+    extra+=(--aside-account-root "$ASIDE_ROOT")
+  fi
+  "$INSTALLER" --target "$target" --scope "$scope" "${extra[@]+"${extra[@]}"}"
+}
+
+run_uninstaller() {
+  target="$1"
+  scope="$2"
+  extra=()
+  if [ "$scope" = project ]; then
+    extra+=(--project-root "$PROJECT_ROOT")
+  fi
+  if [ -n "$ASIDE_ROOT" ]; then
+    extra+=(--aside-account-root "$ASIDE_ROOT")
+  fi
+  if [ "$ASSUME_YES" -eq 1 ]; then
+    extra+=(--yes)
+  fi
+  "$UNINSTALLER" --target "$target" --scope "$scope" "${extra[@]+"${extra[@]}"}"
+}
+
+upsert_records() {
+  version="$1"
+  installed_at="$2"
+  json="$(read_registry)"
+  while IFS= read -r target; do
+    path="$(destination_for "$target" "$SCOPE")"
+    project_root=""
+    account_root=""
+    if [ "$SCOPE" = project ]; then
+      project_root="$PROJECT_ROOT"
+    fi
+    if [ "$target" = aside ]; then
+      account_root="${ASIDE_ROOT:-$HOME/.aside/u/0}"
+    fi
+    json="$(
+      printf '%s\n' "$json" | jq \
+        --arg target "$target" \
+        --arg scope "$SCOPE" \
+        --arg path "$path" \
+        --arg version "$version" \
+        --arg installedAt "$installed_at" \
+        --arg projectRoot "$project_root" \
+        --arg accountRoot "$account_root" '
+          .schemaVersion = 1
+          | .installations //= []
+          | .installations = (
+              [.installations[] | select(.path != $path)]
+              + [{
+                  target: $target,
+                  scope: $scope,
+                  path: $path,
+                  projectRoot: (if $projectRoot == "" then null else $projectRoot end),
+                  accountRoot: (if $accountRoot == "" then null else $accountRoot end),
+                  installedVersion: $version,
+                  installedAt: $installedAt
+                }]
+            )
+        '
+    )"
+  done < <(concrete_targets "$TARGET" "$SCOPE")
+  write_registry "$json"
+}
+
+record_status_line() {
+  record="$1"
+  version="$2"
+  path="$(printf '%s' "$record" | jq -r '.path')"
+  installed_version="$(printf '%s' "$record" | jq -r '.installedVersion')"
+  if [ ! -f "$path/SKILL.md" ]; then
+    state="missing"
+  elif [ "$installed_version" = "$version" ]; then
+    state="current"
+  else
+    state="stale"
+  fi
+  printf 'target: %s\n' "$(printf '%s' "$record" | jq -r '.target')"
+  printf 'scope: %s\n' "$(printf '%s' "$record" | jq -r '.scope')"
+  printf 'path: %s\n' "$path"
+  printf 'installedVersion: %s\n' "$installed_version"
+  printf 'status: %s\n' "$state"
+}
+
+cmd_version() {
+  printf '%s\n' "$(package_version)"
+}
+
+cmd_install() {
+  require_package
+  require_jq
+  collect_target_scope Install
+  run_installer "$TARGET" "$SCOPE"
+  upsert_records "$(package_version)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+
+cmd_status() {
+  require_jq
+  version="$(package_version)"
+  printf 'packageVersion: %s\n' "$version"
+  json="$(read_registry)"
+  query='.installations[]'
+  if [ -n "$TARGET" ] && [ "$TARGET" != all ]; then
+    query="$query | select(.target == \$target)"
+  fi
+  if [ -n "$SCOPE" ]; then
+    query="$query | select(.scope == \$scope)"
+  fi
+  if [ -n "$PROJECT_ROOT" ]; then
+    query="$query | select((.projectRoot // \"\") == \$projectRoot)"
+  fi
+  printed=0
+  while IFS= read -r record; do
+    [ -n "$record" ] || continue
+    printed=1
+    record_status_line "$record" "$version"
+  done < <(printf '%s\n' "$json" | jq -c --arg target "$TARGET" --arg scope "$SCOPE" --arg projectRoot "$PROJECT_ROOT" "$query")
+  if [ "$printed" -eq 0 ]; then
+    echo "No matching installations."
+  fi
+}
+
+cmd_sync() {
+  require_package
+  require_jq
+  json="$(read_registry)"
+  count="$(printf '%s' "$json" | jq '.installations | length')"
+  if [ "$count" -eq 0 ]; then
+    echo "No recorded installations."
+    return
+  fi
+  version="$(package_version)"
+  installed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  while IFS= read -r record; do
+    TARGET="$(printf '%s' "$record" | jq -r '.target')"
+    SCOPE="$(printf '%s' "$record" | jq -r '.scope')"
+    PROJECT_ROOT="$(printf '%s' "$record" | jq -r '.projectRoot // empty')"
+    ASIDE_ROOT="$(printf '%s' "$record" | jq -r '.accountRoot // empty')"
+    run_installer "$TARGET" "$SCOPE"
+  done < <(printf '%s' "$json" | jq -c '.installations[]')
+  json="$(
+    printf '%s\n' "$json" | jq \
+      --arg version "$version" \
+      --arg installedAt "$installed_at" '
+        .installations |= map(.installedVersion = $version | .installedAt = $installedAt)
+      '
+  )"
+  write_registry "$json"
+}
+
+record_matches_filter() {
+  record="$1"
+  rec_target="$(printf '%s' "$record" | jq -r '.target')"
+  rec_scope="$(printf '%s' "$record" | jq -r '.scope')"
+  rec_project="$(printf '%s' "$record" | jq -r '.projectRoot // empty')"
+  if [ -n "$TARGET" ] && [ "$TARGET" != all ] && [ "$rec_target" != "$TARGET" ]; then
+    return 1
+  fi
+  if [ -n "$SCOPE" ] && [ "$rec_scope" != "$SCOPE" ]; then
+    return 1
+  fi
+  if [ -n "$PROJECT_ROOT" ] && [ "$rec_project" != "$PROJECT_ROOT" ]; then
+    return 1
+  fi
+  return 0
+}
+
+cmd_uninstall() {
+  require_package
+  require_jq
+  collect_target_scope Uninstall
+  json="$(read_registry)"
+  run_uninstaller "$TARGET" "$SCOPE"
+  filtered='[]'
+  while IFS= read -r record; do
+    [ -n "$record" ] || continue
+    path="$(printf '%s' "$record" | jq -r '.path')"
+    if record_matches_filter "$record" && [ ! -f "$path/SKILL.md" ]; then
+      continue
+    fi
+    filtered="$(printf '%s\n' "$filtered" | jq --argjson rec "$record" '. + [$rec]')"
+  done < <(printf '%s\n' "$json" | jq -c '.installations[]')
+  json="$(printf '%s\n' "$json" | jq --argjson installations "$filtered" '.installations = $installations')"
+  write_registry "$json"
+}
+
+COMMAND="${1:-}"
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+case "$COMMAND" in
+  ""|-h|--help)
+    usage
+    exit 0
+    ;;
+  version)
+    parse_options "$@"
+    cmd_version
+    ;;
+  install)
+    parse_options "$@"
+    cmd_install
+    ;;
+  status)
+    parse_options "$@"
+    cmd_status
+    ;;
+  sync)
+    parse_options "$@"
+    cmd_sync
+    ;;
+  uninstall)
+    parse_options "$@"
+    cmd_uninstall
+    ;;
+  *)
+    die_usage "unknown command: $COMMAND"
+    ;;
+esac

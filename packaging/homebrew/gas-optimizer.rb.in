@@ -1,0 +1,28 @@
+class GasOptimizer < Formula
+  desc "Agent Skill CLI for SEO, GEO, AEO, accessibility, performance, and deployment-readiness audits"
+  homepage "https://github.com/Deuk1718/GAS-Optimizer"
+  url "{{MACOS_URL}}"
+  version "{{VERSION}}"
+  sha256 "{{MACOS_SHA256}}"
+  license "MIT"
+
+  depends_on "jq"
+
+  def install
+    libexec.install Dir["*"]
+    (bin/"gas-optimizer").write_exec_script (libexec/"bin/gas-optimizer")
+  end
+
+  def caveats
+    <<~EOS
+      Package managers install only launcher files and package metadata; they must not create, update, back up, or remove user or project skill directories.
+      Run `gas-optimizer install` to copy the skill into a host location.
+      After upgrading the package, run `gas-optimizer sync` to update recorded installations.
+      Installation state is recorded at `$GAS_OPTIMIZER_HOME/installations.json` with `schemaVersion` 1 and `installedVersion`.
+    EOS
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/gas-optimizer version")
+  end
+end

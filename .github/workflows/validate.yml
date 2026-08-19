@@ -19,14 +19,18 @@ jobs:
         with:
           node-version: 20
       - name: Check shell syntax
-        run: bash -n install.sh uninstall.sh installers/install.sh installers/uninstall.sh scripts/build-release.sh
+        run: bash -n install.sh uninstall.sh installers/install.sh installers/uninstall.sh bin/gas-optimizer scripts/test-cli.sh scripts/build-release.sh
       - name: Validate Agent Skill package
         run: node scripts/validate-package.js
       - name: Build upload-ready bundle
         run: |
           ./scripts/build-release.sh
           unzip -l "dist/gas-optimizer-v$(cat VERSION).zip" | grep 'gas-optimizer/SKILL.md'
+          tar -tzf "dist/gas-optimizer-v$(cat VERSION)-macos.tar.gz" | grep 'bin/gas-optimizer'
+          unzip -l "dist/gas-optimizer-v$(cat VERSION)-windows.zip" | grep 'bin/gas-optimizer.cmd'
           test -s dist/SHA256SUMS.txt
+          test -f dist/packaging/homebrew/gas-optimizer.rb
+          test -f dist/packaging/scoop/gas-optimizer.json
 
   unix-installers:
     strategy:
@@ -64,6 +68,18 @@ jobs:
           ./uninstall.sh --target all --scope project --project-root "$PROJECT" --yes
           test ! -e "$PROJECT/.claude/skills/gas-optimizer"
           test ! -e "$PROJECT/.agents/skills/gas-optimizer"
+      - name: Install jq for CLI smoke tests
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            if command -v brew >/dev/null 2>&1; then
+              brew install jq
+            else
+              sudo apt-get update
+              sudo apt-get install -y jq
+            fi
+          fi
+      - name: CLI lifecycle smoke test
+        run: ./scripts/test-cli.sh
 
   windows-installer:
     runs-on: windows-latest
@@ -96,3 +112,6 @@ jobs:
           .\uninstall.ps1 -Target All -Scope Project -ProjectRoot $Project -Yes
           if (Test-Path (Join-Path $Project ".claude\skills\gas-optimizer")) { throw "Claude project uninstall failed" }
           if (Test-Path (Join-Path $Project ".agents\skills\gas-optimizer")) { throw "Agents project uninstall failed" }
+      - name: CLI lifecycle smoke test
+        shell: pwsh
+        run: .\scripts\test-cli.ps1

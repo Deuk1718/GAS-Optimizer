@@ -105,8 +105,22 @@ GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근�
 ### 95점 게이트 통과 후 선택 가능
 
 - Vercel Preview·Production 배포
-- Google Search Console 소유권 확인과 사이트맵 제출
-- Bing Webmaster Tools 등록과 사이트맵 제출
+- Google Search Console 속성 등록, 소유권 확인, 사이트맵 제출, 제출 후 검증
+- Bing Webmaster Tools 사이트 등록, 네이티브 소유권 확인, Search Console 가져오기, 사이트맵 제출, IndexNow 알림
+- Naver Search Advisor 호스트 등록, 소유권 확인, 사이트맵·RSS 제출, IndexNow 알림, 선택적 수동 수집 요청
+
+### 외부 작업 실행 수준
+
+외부 서비스에서 동일한 경험을 제공한다는 말은 자동화 가능성이 항상 같다는 뜻이 아닙니다. 모든 환경에서 same preflight, execution-level decision, status vocabulary, evidence standard, manual handoff를 적용한다는 뜻입니다. 공식 API나 MCP가 없거나 인증 상태를 안전하게 확인할 수 없으면 자동 실행 대신 검증 가능한 인계 또는 차단 상태로 기록합니다.
+
+- **Level 1 · official API/MCP**: 사용자가 승인한 provider/action에 대해 공식 API, MCP, 또는 공식 지원 통합으로 실행하고 provider confirmation과 증거를 남길 수 있을 때만 사용합니다.
+- **Level 2 · authenticated browser**: 사용자가 직접 login, 2FA, CAPTCHA를 완료한 뒤의 세션에서만 보조합니다. credentials, recovery, 2FA secrets are never requested or stored.
+- **Level 3 · verifiable handoff**: 안전한 자동 실행이 불가능하지만 공식 목적지, 정확한 값, 검증 단계, 예상 성공 상태, 재시도·롤백을 제공할 수 있으면 `manual-required`로 남깁니다.
+- **Level 4 · blocked**: 필수 권한, 소유권, 안전한 도구, 검증 가능한 증거, 또는 provider 조건이 없으면 차단합니다.
+
+`quality-gate`는 SEO, GEO, AEO, 접근성, 성능, 배포 준비도 6개 핵심 점수의 비상쇄형 95점 통과 여부만 판단합니다. 외부 capability 때문에 core 95 scores는 절대 오르거나 내려가지 않습니다. `external-operations-gate`는 선택형 외부 작업의 별도 결과이며, 가이드만 제공한 상태는 완료가 아닙니다. 수동 인계는 `manual-required`로 기록하고, manual handoff alone remains `manual-required` and is not complete. 사용자가 완료 증거를 제공하거나 관찰 가능한 provider confirmation이 있어야 completed 또는 verified로 바꿀 수 있습니다.
+
+Google, Bing, Naver 같은 post-95 optional provider도 provider/action-specific approval을 각각 받아야 합니다. 등록과 소유권 확인도 서로 다른 작업입니다. Bing Search Console 가져오기는 별도의 사용자 Google 승인이 필요하며 다른 작업과 묶을 수 없습니다. 각 등록, 확인, 제출, 알림, 가져오기, 수동 수집 요청은 서로 다른 승인·증거·롤백 단위입니다.
 
 한 기능의 승인은 다른 외부 작업의 승인을 의미하지 않습니다.
 
@@ -118,7 +132,7 @@ GAS-Optimizer는 정적 HTML, SSG, SSR 웹사이트를 **SEO, GEO, AEO, 접근�
 | `claude` | Claude Code | `~/.claude/skills/gas-optimizer` | `.claude/skills/gas-optimizer` |
 | `agents` | Codex, Cursor, GitHub Copilot | `~/.agents/skills/gas-optimizer` | `.agents/skills/gas-optimizer` |
 
-macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI API처럼 파일 업로드가 필요한 환경에는 Release의 `gas-optimizer-v1.1.0.zip`을 사용할 수 있습니다.
+macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI API처럼 파일 업로드가 필요한 환경에는 Release의 `gas-optimizer-v1.2.0.zip`을 사용할 수 있습니다.
 
 ## 호출 방법
 
@@ -148,12 +162,53 @@ macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI A
 - 브라우저, 네트워크, Git, 배포 도구가 없는 환경에서는 해당 검사가 `[blocked]` 또는 수동 단계로 남을 수 있음
 - Aside 대상은 Aside를 한 번 실행하여 계정 폴더가 생성되어 있어야 함
 
+## 패키지 매니저 설치
+
+패키지 매니저는 실행기와 버전 고정 스킬 번들만 설치합니다. Package managers install only launcher files and package metadata; they must not create, update, back up, or remove user or project skill directories.
+
+실제 호스트 복사는 두 번째 단계에서 사용자가 대상과 범위를 고른 뒤에만 이루어집니다.
+
+macOS Homebrew:
+
+```bash
+brew install deuk1718/tap/gas-optimizer
+gas-optimizer install
+```
+
+Windows Scoop:
+
+```powershell
+scoop bucket add gas-optimizer https://github.com/Deuk1718/scoop-gas-optimizer
+scoop install gas-optimizer
+gas-optimizer install
+```
+
+CLI 계약:
+
+```text
+gas-optimizer install
+gas-optimizer status
+gas-optimizer sync
+gas-optimizer uninstall
+gas-optimizer version
+```
+
+- `gas-optimizer install`은 대상과 범위를 받은 뒤 기존 설치기에 명시적 플래그를 전달합니다.
+- `gas-optimizer status`는 패키지 버전과 기록된 복사본의 `installedVersion` 차이를 보여 줍니다.
+- `gas-optimizer sync`는 패키지 업그레이드 후 기록된 설치만 백업하고 다시 복사합니다. 자동으로 동기화하지 않습니다.
+- `gas-optimizer uninstall`은 기록된 대상을 선택한 뒤 확인을 받고 백업 후 제거합니다. Homebrew/Scoop 제거는 사용자·프로젝트 스킬 복사본을 지우지 않습니다.
+- 설치 기록은 `$GAS_OPTIMIZER_HOME/installations.json`에 저장되며, 기본값은 `~/.gas-optimizer/installations.json`입니다. 문서 형식은 `schemaVersion` 1입니다.
+
+생성된 Homebrew Formula와 Scoop manifest를 tap/bucket 저장소에 올리는 일은 릴리스 채널 작업입니다. 사용자 홈 디렉터리를 바꾸지 않습니다. Windows WinGet 채널은 이후 단계에서 추가합니다.
+
+Git clone 후 `install.sh`/`install.ps1`를 실행하는 방식은 그대로 지원합니다.
+
 ## macOS·Linux 설치
 
 ```bash
-git clone --branch v1.1.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
+git clone --branch v1.2.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
 cd GAS-Optimizer
-chmod +x install.sh uninstall.sh installers/*.sh scripts/build-release.sh
+chmod +x install.sh uninstall.sh installers/*.sh scripts/build-release.sh bin/gas-optimizer
 ```
 
 사용자 범위 설치:
@@ -180,7 +235,7 @@ chmod +x install.sh uninstall.sh installers/*.sh scripts/build-release.sh
 PowerShell에서 실행합니다.
 
 ```powershell
-git clone --branch v1.1.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
+git clone --branch v1.2.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
 Set-Location GAS-Optimizer
 ```
 
@@ -208,7 +263,7 @@ PowerShell 7에서는 `powershell` 대신 `pwsh`를 사용할 수 있습니다. 
 Claude.ai 또는 API 업로드에는 별도 Release 자산인 다음 파일을 사용합니다.
 
 ```text
-gas-optimizer-v1.1.0.zip
+gas-optimizer-v1.2.0.zip
 SHA256SUMS.txt
 ```
 
@@ -216,7 +271,7 @@ SHA256SUMS.txt
 
 설치기는 공통 원본인 `skill/gas-optimizer`를 선택한 위치에 복사합니다. 기존 설치가 있으면 덮어쓰기 전에 자동 백업하며 심볼릭 링크는 교체하지 않습니다.
 
-업데이트는 새 태그를 내려받은 뒤 같은 대상과 범위로 설치기를 다시 실행하면 됩니다. 설치 후 호스트가 즉시 발견하지 못하면 해당 앱이나 세션을 다시 시작하십시오.
+패키지 매니저로 올린 뒤에는 `gas-optimizer sync`로 기록된 복사본만 갱신합니다. Git clone 설치기는 새 태그를 내려받은 뒤 같은 대상과 범위로 다시 실행하면 됩니다. 설치 후 호스트가 즉시 발견하지 못하면 해당 앱이나 세션을 다시 시작하십시오.
 
 ## 제거
 
@@ -258,9 +313,15 @@ GAS-Optimizer/
 ├── README.md
 ├── LICENSE
 ├── VERSION
+├── bin/gas-optimizer
+├── bin/gas-optimizer.ps1
+├── bin/gas-optimizer.cmd
 ├── install.sh / install.ps1
 ├── uninstall.sh / uninstall.ps1
 ├── installers/
+├── packaging/
+│   ├── homebrew/gas-optimizer.rb.in
+│   └── scoop/gas-optimizer.json.in
 ├── scripts/
 ├── docs/
 │   ├── INVOCATION.md
@@ -270,7 +331,9 @@ GAS-Optimizer/
     ├── SKILL.md
     ├── references/
     │   ├── quality-rubric.md
-    │   └── capability-matrix.md
+    │   ├── capability-matrix.md
+    │   ├── external-search-operations.md
+    │   └── search-engines/
     └── assets/analysis-plan-template.html
 ```
 
