@@ -127,7 +127,8 @@ try {
     }
     $BackupRootCandidates = @(
         Join-Path $env:GAS_OPTIMIZER_HOME "backups",
-        Join-Path $env:HOME ".gas-optimizer\backups"
+        Join-Path $env:HOME ".gas-optimizer\backups",
+        Join-Path $HOME ".gas-optimizer\backups"
     )
     $SyncBackup = $BackupRootCandidates |
         Where-Object { Test-Path -LiteralPath $_ -PathType Container } |
