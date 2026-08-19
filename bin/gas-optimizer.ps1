@@ -1,3 +1,16 @@
+param(
+    [Parameter(Position = 0)]
+    [string]$Command,
+    [string]$Target,
+    [string]$Scope,
+    [string]$ProjectRoot,
+    [Alias("AccountRoot")]
+    [string]$AsideAccountRoot,
+    [switch]$Yes,
+    [Alias("h")]
+    [switch]$Help
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -163,55 +176,6 @@ function Invoke-Installer {
     & $ScriptPath @Splat
 }
 
-function Parse-CliArgs {
-    param([string[]]$Argv)
-    $Argv = @($Argv)
-    $Parsed = @{
-        Target = ""
-        Scope = ""
-        ProjectRoot = ""
-        AsideRoot = $(if ($env:ASIDE_ACCOUNT_ROOT) { $env:ASIDE_ACCOUNT_ROOT } else { "" })
-        Yes = $false
-    }
-    $Index = 0
-    while ($Index -lt $Argv.Count) {
-        switch ($Argv[$Index]) {
-            "--target" {
-                $Parsed.Target = $Argv[$Index + 1].ToLowerInvariant()
-                $Index += 2
-            }
-            "--scope" {
-                $Parsed.Scope = $Argv[$Index + 1].ToLowerInvariant()
-                $Index += 2
-            }
-            "--project-root" {
-                $Parsed.ProjectRoot = $Argv[$Index + 1]
-                $Index += 2
-            }
-            "--aside-account-root" {
-                $Parsed.AsideRoot = $Argv[$Index + 1]
-                $Index += 2
-            }
-            "--account-root" {
-                $Parsed.AsideRoot = $Argv[$Index + 1]
-                $Index += 2
-            }
-            "--yes" {
-                $Parsed.Yes = $true
-                $Index += 1
-            }
-            { $_ -in @("-h", "--help") } {
-                Show-Usage
-                return $null
-            }
-            default {
-                throw "Error: unknown option: $($Argv[$Index])"
-            }
-        }
-    }
-    return $Parsed
-}
-
 function Read-RequiredChoice {
     param(
         [string]$Current,
@@ -268,24 +232,6 @@ function Get-RecordStatus {
     return "stale"
 }
 
-function Should-ExitProcess {
-    $CommandArgs = [Environment]::GetCommandLineArgs()
-    for ($Index = 0; $Index -lt $CommandArgs.Length; $Index++) {
-        if ($CommandArgs[$Index] -notin @("-File", "-f")) { continue }
-        if ($Index + 1 -ge $CommandArgs.Length) { return $false }
-        $FileArg = $CommandArgs[$Index + 1]
-        try {
-            $Resolved = [System.IO.Path]::GetFullPath($FileArg)
-        } catch {
-            $Resolved = $FileArg
-        }
-        if ($Resolved -eq $PSCommandPath -or $PSCommandPath.EndsWith($FileArg, [System.StringComparison]::OrdinalIgnoreCase)) {
-            return $true
-        }
-    }
-    return $false
-}
-
 function Invoke-GasOptimizer {
     $PackageRoot = Resolve-PackageRoot
     $Installer = Join-Path $PackageRoot "installers\install.ps1"
@@ -294,23 +240,23 @@ function Invoke-GasOptimizer {
     $StateHome = if ($env:GAS_OPTIMIZER_HOME) { $env:GAS_OPTIMIZER_HOME } else { Join-Path $HOME ".gas-optimizer" }
     $RegistryPath = Join-Path $StateHome "installations.json"
 
-    $Argv = @($args)
-    if ($Argv.Count -lt 1 -or $Argv[0] -in @("-h", "--help")) {
+    if ($Help -or [string]::IsNullOrWhiteSpace($Command) -or $Command -in @("-h", "--help", "help")) {
         Show-Usage
         return 0
     }
-
-    $Command = $Argv[0]
-    $OptionArgs = @()
-    if ($Argv.Count -gt 1) { $OptionArgs = $Argv[1..($Argv.Count - 1)] }
 
     if ($Command -eq "version") {
         Write-Output (Get-PackageVersion $VersionFile)
         return 0
     }
 
-    $Parsed = Parse-CliArgs $OptionArgs
-    if ($null -eq $Parsed) { return 0 }
+    $Parsed = @{
+        Target = $(if ($Target) { $Target.ToLowerInvariant() } else { "" })
+        Scope = $(if ($Scope) { $Scope.ToLowerInvariant() } else { "" })
+        ProjectRoot = $(if ($ProjectRoot) { $ProjectRoot } else { "" })
+        AsideRoot = $(if ($AsideAccountRoot) { $AsideAccountRoot } elseif ($env:ASIDE_ACCOUNT_ROOT) { $env:ASIDE_ACCOUNT_ROOT } else { "" })
+        Yes = [bool]$Yes
+    }
 
     switch ($Command) {
         "install" {
@@ -398,15 +344,11 @@ function Invoke-GasOptimizer {
 
 $script:ExitCode = 0
 try {
-    $script:ExitCode = Invoke-GasOptimizer @args
+    $script:ExitCode = Invoke-GasOptimizer
 } catch {
-    Write-Error -ErrorRecord $_ -ErrorAction Continue
+    [Console]::Error.WriteLine($_.Exception.Message)
     $script:ExitCode = 1
 }
 
 $global:LASTEXITCODE = $script:ExitCode
-if ((Should-ExitProcess) -or $script:ExitCode -eq 0) {
-    if (Should-ExitProcess) { exit $script:ExitCode }
-} else {
-    throw "gas-optimizer failed"
-}
+exit $script:ExitCode

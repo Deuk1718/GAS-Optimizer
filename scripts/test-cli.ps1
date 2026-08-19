@@ -22,11 +22,12 @@ function Assert-UnderTemp {
 }
 
 function Invoke-Cli {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
-    & $Cli @Arguments
+    param([string[]]$CliArguments)
+    $Output = & $Cli @CliArguments
     if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-        Fail "gas-optimizer $($Arguments -join ' ') exited with $LASTEXITCODE"
+        Fail "gas-optimizer $($CliArguments -join ' ') exited with $LASTEXITCODE"
     }
+    return $Output
 }
 
 function Read-Registry {
@@ -98,25 +99,25 @@ try {
     }
     $script:Registry = Join-Path $env:GAS_OPTIMIZER_HOME "installations.json"
 
-    $VersionOutput = (Invoke-Cli version) -join "`n"
+    $VersionOutput = (Invoke-Cli -CliArguments @("version")) -join "`n"
     Assert-Contains $VersionOutput $Version
     Assert-NoRealUserPaths
 
     $AgentsPath = Join-Path $env:AGENT_SKILLS_ROOT "gas-optimizer"
-    Invoke-Cli install --target agents --scope user | Out-Null
+    Invoke-Cli -CliArguments @("install", "--target", "agents", "--scope", "user") | Out-Null
     if (-not (Test-Path -LiteralPath (Join-Path $AgentsPath "SKILL.md") -PathType Leaf)) {
         Fail "user agents install did not create $AgentsPath"
     }
     Assert-SingleRecord agents user $AgentsPath
 
-    $StatusOutput = (Invoke-Cli status --target agents --scope user) -join "`n"
+    $StatusOutput = (Invoke-Cli -CliArguments @("status", "--target", "agents", "--scope", "user")) -join "`n"
     Assert-Contains $StatusOutput "current"
     Assert-Contains $StatusOutput $AgentsPath
     Assert-SingleRecord agents user $AgentsPath
 
     $Sentinel = Join-Path $AgentsPath "STALE-FILE"
     Set-Content -LiteralPath $Sentinel -Value "stale"
-    Invoke-Cli sync | Out-Null
+    Invoke-Cli -CliArguments @("sync") | Out-Null
     if (-not (Test-Path -LiteralPath (Join-Path $AgentsPath "SKILL.md") -PathType Leaf)) {
         Fail "sync did not reinstall the agents record"
     }
@@ -136,7 +137,7 @@ try {
     }
     Assert-SingleRecord agents user $AgentsPath
 
-    Invoke-Cli uninstall --target agents --scope user --yes | Out-Null
+    Invoke-Cli -CliArguments @("uninstall", "--target", "agents", "--scope", "user", "--yes") | Out-Null
     if (Test-Path -LiteralPath $AgentsPath) {
         Fail "uninstall did not remove $AgentsPath"
     }
@@ -152,17 +153,17 @@ try {
     $ProjectRoot = Join-Path $TmpRoot "project"
     New-Item -ItemType Directory -Path $ProjectRoot -Force | Out-Null
     $ProjectAgentsPath = Join-Path $ProjectRoot ".agents\skills\gas-optimizer"
-    Invoke-Cli install --target agents --scope project --project-root $ProjectRoot | Out-Null
+    Invoke-Cli -CliArguments @("install", "--target", "agents", "--scope", "project", "--project-root", $ProjectRoot) | Out-Null
     if (-not (Test-Path -LiteralPath (Join-Path $ProjectAgentsPath "SKILL.md") -PathType Leaf)) {
         Fail "project agents install did not create $ProjectAgentsPath"
     }
     Assert-SingleRecord agents project $ProjectAgentsPath
 
-    $ProjectStatus = (Invoke-Cli status --target agents --scope project --project-root $ProjectRoot) -join "`n"
+    $ProjectStatus = (Invoke-Cli -CliArguments @("status", "--target", "agents", "--scope", "project", "--project-root", $ProjectRoot)) -join "`n"
     Assert-Contains $ProjectStatus "current"
     Assert-Contains $ProjectStatus $ProjectAgentsPath
 
-    Invoke-Cli uninstall --target agents --scope project --project-root $ProjectRoot --yes | Out-Null
+    Invoke-Cli -CliArguments @("uninstall", "--target", "agents", "--scope", "project", "--project-root", $ProjectRoot, "--yes") | Out-Null
     if (Test-Path -LiteralPath $ProjectAgentsPath) {
         Fail "project agents uninstall did not remove $ProjectAgentsPath"
     }
