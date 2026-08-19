@@ -132,7 +132,7 @@ Google, Bing, Naver 같은 post-95 optional provider도 provider/action-specific
 | `claude` | Claude Code | `~/.claude/skills/gas-optimizer` | `.claude/skills/gas-optimizer` |
 | `agents` | Codex, Cursor, GitHub Copilot | `~/.agents/skills/gas-optimizer` | `.agents/skills/gas-optimizer` |
 
-macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI API처럼 파일 업로드가 필요한 환경에는 Release의 `gas-optimizer-v1.2.0.zip`을 사용할 수 있습니다.
+macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI API처럼 파일 업로드가 필요한 환경에는 Release의 `gas-optimizer-v1.2.1.zip`을 사용할 수 있습니다.
 
 ## 호출 방법
 
@@ -206,7 +206,7 @@ Git clone 후 `install.sh`/`install.ps1`를 실행하는 방식은 그대로 지
 ## macOS·Linux 설치
 
 ```bash
-git clone --branch v1.2.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
+git clone --branch v1.2.1 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
 cd GAS-Optimizer
 chmod +x install.sh uninstall.sh installers/*.sh scripts/build-release.sh bin/gas-optimizer
 ```
@@ -235,7 +235,7 @@ chmod +x install.sh uninstall.sh installers/*.sh scripts/build-release.sh bin/ga
 PowerShell에서 실행합니다.
 
 ```powershell
-git clone --branch v1.2.0 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
+git clone --branch v1.2.1 --depth 1 https://github.com/Deuk1718/GAS-Optimizer.git
 Set-Location GAS-Optimizer
 ```
 
@@ -263,7 +263,7 @@ PowerShell 7에서는 `powershell` 대신 `pwsh`를 사용할 수 있습니다. 
 Claude.ai 또는 API 업로드에는 별도 Release 자산인 다음 파일을 사용합니다.
 
 ```text
-gas-optimizer-v1.2.0.zip
+gas-optimizer-v1.2.1.zip
 SHA256SUMS.txt
 ```
 
