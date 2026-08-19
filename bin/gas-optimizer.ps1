@@ -242,12 +242,12 @@ function Invoke-GasOptimizer {
 
     if ($Help -or [string]::IsNullOrWhiteSpace($Command) -or $Command -in @("-h", "--help", "help")) {
         Show-Usage
-        return 0
+        return
     }
 
     if ($Command -eq "version") {
         Write-Output (Get-PackageVersion $VersionFile)
-        return 0
+        return
     }
 
     $Parsed = @{
@@ -307,7 +307,7 @@ function Invoke-GasOptimizer {
             $Registry = Read-Registry $RegistryPath
             if (@($Registry.installations).Count -eq 0) {
                 Write-Output "No recorded installations."
-                return 0
+                return
             }
             $Version = Get-PackageVersion $VersionFile
             $InstalledAt = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -339,12 +339,12 @@ function Invoke-GasOptimizer {
             throw "Error: unknown command: $Command"
         }
     }
-    return 0
+    return
 }
 
 $script:ExitCode = 0
 try {
-    $script:ExitCode = Invoke-GasOptimizer
+    Invoke-GasOptimizer
 } catch {
     [Console]::Error.WriteLine($_.Exception.Message)
     $script:ExitCode = 1
