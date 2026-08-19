@@ -23,8 +23,9 @@ function Assert-UnderTemp {
 
 function Invoke-Cli {
     param([string[]]$CliArguments)
-    $Output = & $Cli @CliArguments
-    if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+    $Pwsh = (Get-Process -Id $PID).Path
+    $Output = & $Pwsh -NoProfile -File $Cli @CliArguments
+    if ($LASTEXITCODE -ne 0) {
         Fail "gas-optimizer $($CliArguments -join ' ') exited with $LASTEXITCODE"
     }
     return $Output
