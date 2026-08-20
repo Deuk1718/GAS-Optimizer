@@ -35,7 +35,8 @@ const replacements = {
   MACOS_URL: `${releaseBase}/${macosArchive}`,
   MACOS_SHA256: requiredChecksum(macosArchive),
   WINDOWS_URL: `${releaseBase}/${windowsArchive}`,
-  WINDOWS_SHA256: requiredChecksum(windowsArchive)
+  WINDOWS_SHA256: requiredChecksum(windowsArchive),
+  WINDOWS_SHA256_UPPER: requiredChecksum(windowsArchive).toUpperCase()
 };
 
 function render(templatePath, keys) {
@@ -64,6 +65,21 @@ const outputs = [
     template: path.join(root, "packaging", "scoop", "gas-optimizer.json.in"),
     dest: path.join(dist, "packaging", "scoop", "gas-optimizer.json"),
     keys: ["VERSION", "WINDOWS_URL", "WINDOWS_SHA256"]
+  },
+  {
+    template: path.join(root, "packaging", "winget", "Deuk1718.GASOptimizer.yaml.in"),
+    dest: path.join(dist, "packaging", "winget", "Deuk1718.GASOptimizer.yaml"),
+    keys: ["VERSION"]
+  },
+  {
+    template: path.join(root, "packaging", "winget", "Deuk1718.GASOptimizer.installer.yaml.in"),
+    dest: path.join(dist, "packaging", "winget", "Deuk1718.GASOptimizer.installer.yaml"),
+    keys: ["VERSION", "WINDOWS_URL", "WINDOWS_SHA256_UPPER"]
+  },
+  {
+    template: path.join(root, "packaging", "winget", "Deuk1718.GASOptimizer.locale.en-US.yaml.in"),
+    dest: path.join(dist, "packaging", "winget", "Deuk1718.GASOptimizer.locale.en-US.yaml"),
+    keys: ["VERSION"]
   }
 ];
 

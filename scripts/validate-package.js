@@ -20,9 +20,14 @@ const required = [
   'bin/gas-optimizer.cmd',
   'scripts/test-cli.sh',
   'scripts/test-cli.ps1',
+  'scripts/test-scoop-channel.ps1',
   'scripts/generate-package-manifests.js',
+  'scripts/publish-package-channels.sh',
   'packaging/homebrew/gas-optimizer.rb.in',
   'packaging/scoop/gas-optimizer.json.in',
+  'packaging/winget/Deuk1718.GASOptimizer.yaml.in',
+  'packaging/winget/Deuk1718.GASOptimizer.installer.yaml.in',
+  'packaging/winget/Deuk1718.GASOptimizer.locale.en-US.yaml.in',
   'skill/gas-optimizer/SKILL.md',
   'skill/gas-optimizer/references/quality-rubric.md',
   'skill/gas-optimizer/references/capability-matrix.md',
@@ -36,7 +41,7 @@ for (const file of required) {
   if (!fs.existsSync(path.join(root, file))) throw new Error(`Missing required file: ${file}`);
 }
 
-for (const file of ['scripts/test-cli.sh', 'scripts/test-cli.ps1', 'bin/gas-optimizer']) {
+for (const file of ['scripts/test-cli.sh', 'scripts/test-cli.ps1', 'scripts/publish-package-channels.sh', 'bin/gas-optimizer']) {
   const stats = fs.statSync(path.join(root, file));
   if (!stats.isFile()) throw new Error(`CLI smoke test must be a readable file: ${file}`);
   if ((file.endsWith('.sh') || file === 'bin/gas-optimizer') && (stats.mode & 0o111) === 0) {
@@ -45,7 +50,7 @@ for (const file of ['scripts/test-cli.sh', 'scripts/test-cli.ps1', 'bin/gas-opti
 }
 
 const formulaTemplate = fs.readFileSync(path.join(root, 'packaging', 'homebrew', 'gas-optimizer.rb.in'), 'utf8');
-for (const marker of ['{{VERSION}}', '{{MACOS_URL}}', '{{MACOS_SHA256}}', 'depends_on "jq"', 'gas-optimizer install', 'gas-optimizer sync']) {
+for (const marker of ['{{VERSION}}', '{{MACOS_URL}}', '{{MACOS_SHA256}}', 'depends_on "jq"', 'bin.write_exec_script', 'gas-optimizer install', 'gas-optimizer sync']) {
   if (!formulaTemplate.includes(marker)) {
     throw new Error(`Homebrew Formula template is missing ${marker}`);
   }
@@ -54,6 +59,12 @@ const scoopTemplate = fs.readFileSync(path.join(root, 'packaging', 'scoop', 'gas
 for (const marker of ['{{VERSION}}', '{{WINDOWS_URL}}', '{{WINDOWS_SHA256}}', 'extract_dir', 'gas-optimizer.cmd', 'gas-optimizer install']) {
   if (!scoopTemplate.includes(marker)) {
     throw new Error(`Scoop manifest template is missing ${marker}`);
+  }
+}
+const wingetInstaller = fs.readFileSync(path.join(root, 'packaging', 'winget', 'Deuk1718.GASOptimizer.installer.yaml.in'), 'utf8');
+for (const marker of ['{{VERSION}}', '{{WINDOWS_URL}}', '{{WINDOWS_SHA256_UPPER}}', 'NestedInstallerType: portable', 'PortableCommandAlias: gas-optimizer']) {
+  if (!wingetInstaller.includes(marker)) {
+    throw new Error(`WinGet installer template is missing ${marker}`);
   }
 }
 

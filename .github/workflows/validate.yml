@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
       - name: Check shell syntax
-        run: bash -n install.sh uninstall.sh installers/install.sh installers/uninstall.sh bin/gas-optimizer scripts/test-cli.sh scripts/build-release.sh
+        run: bash -n install.sh uninstall.sh installers/install.sh installers/uninstall.sh bin/gas-optimizer scripts/test-cli.sh scripts/build-release.sh scripts/publish-package-channels.sh
       - name: Validate Agent Skill package
         run: node scripts/validate-package.js
       - name: Build upload-ready bundle
@@ -31,6 +31,10 @@ jobs:
           test -s dist/SHA256SUMS.txt
           test -f dist/packaging/homebrew/gas-optimizer.rb
           test -f dist/packaging/scoop/gas-optimizer.json
+          test -f dist/packaging/winget/Deuk1718.GASOptimizer.yaml
+          test -f dist/packaging/winget/Deuk1718.GASOptimizer.installer.yaml
+          test -f dist/packaging/winget/Deuk1718.GASOptimizer.locale.en-US.yaml
+          grep -q 'bin.write_exec_script' dist/packaging/homebrew/gas-optimizer.rb
 
   unix-installers:
     strategy:
@@ -115,3 +119,11 @@ jobs:
       - name: CLI lifecycle smoke test
         shell: pwsh
         run: .\scripts\test-cli.ps1
+
+  scoop-channel:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GAS-Optimizer from the public Scoop bucket
+        shell: pwsh
+        run: .\scripts\test-scoop-channel.ps1
