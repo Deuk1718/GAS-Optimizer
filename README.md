@@ -176,14 +176,6 @@ brew install deuk1718/tap/gas-optimizer
 gas-optimizer install
 ```
 
-Windows Scoop:
-
-```powershell
-scoop bucket add gas-optimizer https://github.com/Deuk1718/scoop-gas-optimizer
-scoop install gas-optimizer
-gas-optimizer install
-```
-
 CLI 계약:
 
 ```text
@@ -197,12 +189,10 @@ gas-optimizer version
 - `gas-optimizer install`은 대상과 범위를 받은 뒤 기존 설치기에 명시적 플래그를 전달합니다.
 - `gas-optimizer status`는 패키지 버전과 기록된 복사본의 `installedVersion` 차이를 보여 줍니다.
 - `gas-optimizer sync`는 패키지 업그레이드 후 기록된 설치만 백업하고 다시 복사합니다. 자동으로 동기화하지 않습니다.
-- `gas-optimizer uninstall`은 기록된 대상을 선택한 뒤 확인을 받고 백업 후 제거합니다. Homebrew/Scoop 제거는 사용자·프로젝트 스킬 복사본을 지우지 않습니다.
+- `gas-optimizer uninstall`은 기록된 대상을 선택한 뒤 확인을 받고 백업 후 제거합니다. Homebrew 제거는 사용자·프로젝트 스킬 복사본을 지우지 않습니다.
 - 설치 기록은 `$GAS_OPTIMIZER_HOME/installations.json`에 저장되며, 기본값은 `~/.gas-optimizer/installations.json`입니다. 문서 형식은 `schemaVersion` 1입니다.
 
-생성된 Homebrew Formula와 Scoop manifest를 tap/bucket 저장소에 올리는 일은 릴리스 채널 작업입니다. 사용자 홈 디렉터리를 바꾸지 않습니다. 태그를 만든 뒤에는 `./scripts/publish-package-channels.sh vX.Y.Z`를 실행하거나, 릴리스 워크플로 비밀 `PACKAGE_CHANNEL_TOKEN`을 설정해 자동으로 반영합니다.
-
-WinGet 매니페스트는 릴리스 빌드에 `Deuk1718.GASOptimizer` YAML로 포함됩니다. 공식 카탈로그 등록은 `microsoft/winget-pkgs`에 제출하는 별도 작업입니다. WinGet portable alias는 `.cmd` 런처를 실행하지 못할 수 있어서, 로컬 `winget install --manifest`는 아직 지원 경로가 아닙니다.
+생성된 Homebrew Formula를 tap 저장소에 올리는 일은 릴리스 채널 작업입니다. 사용자 홈 디렉터리를 바꾸지 않습니다. 태그를 만든 뒤에는 `./scripts/publish-package-channels.sh vX.Y.Z`를 실행하거나, 릴리스 워크플로 비밀 `PACKAGE_CHANNEL_TOKEN`을 설정해 자동으로 반영합니다.
 
 Git clone 후 `install.sh`/`install.ps1`를 실행하는 방식은 그대로 지원합니다.
 
