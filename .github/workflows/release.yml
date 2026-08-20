@@ -33,7 +33,7 @@ jobs:
           PACKAGE_CHANNEL_TOKEN: ${{ secrets.PACKAGE_CHANNEL_TOKEN }}
         run: |
           if [ -z "${PACKAGE_CHANNEL_TOKEN:-}" ]; then
-            echo "Skipping tap/bucket publish. Add repository secret PACKAGE_CHANNEL_TOKEN with write access to Deuk1718/homebrew-tap and Deuk1718/scoop-gas-optimizer, or run ./scripts/publish-package-channels.sh $GITHUB_REF_NAME locally."
+            echo "::warning::Skipping tap/bucket publish. Add repository secret PACKAGE_CHANNEL_TOKEN with write access to Deuk1718/homebrew-tap and Deuk1718/scoop-gas-optimizer, or run ./scripts/publish-package-channels.sh $GITHUB_REF_NAME locally."
             exit 0
           fi
           GH_TOKEN="$PACKAGE_CHANNEL_TOKEN" ./scripts/publish-package-channels.sh "$GITHUB_REF_NAME"

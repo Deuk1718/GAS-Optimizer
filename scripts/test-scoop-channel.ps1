@@ -3,8 +3,9 @@ $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
-$Version = (Get-Content -LiteralPath (Join-Path $RepoRoot "VERSION") -Raw).Trim()
+$RepoVersion = (Get-Content -LiteralPath (Join-Path $RepoRoot "VERSION") -Raw).Trim()
 $BucketUrl = "https://github.com/Deuk1718/scoop-gas-optimizer"
+$ManifestUrl = "https://raw.githubusercontent.com/Deuk1718/scoop-gas-optimizer/main/gas-optimizer.json"
 $ScoopDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gas-optimizer-scoop-" + [System.Guid]::NewGuid().ToString("N"))
 $Installer = Join-Path ([System.IO.Path]::GetTempPath()) "install-scoop.ps1"
 
@@ -40,8 +41,13 @@ if (-not $Cli) {
 }
 
 $Observed = (& gas-optimizer version | Out-String).Trim()
-if ($Observed -ne $Version) {
-    Fail "gas-optimizer version is '$Observed', expected '$Version'"
+$Manifest = Invoke-RestMethod -Uri $ManifestUrl
+$Expected = [string]$Manifest.version
+if ($Observed -ne $Expected) {
+    Fail "gas-optimizer version is '$Observed', expected bucket version '$Expected'"
+}
+if ($Expected -ne $RepoVersion) {
+    Write-Warning "Repo VERSION is $RepoVersion; public Scoop bucket is $Expected. Channel publish happens after a release tag."
 }
 
 Write-Output "PASS: scoop installed gas-optimizer $Observed"

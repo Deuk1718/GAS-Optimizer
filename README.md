@@ -202,11 +202,7 @@ gas-optimizer version
 
 생성된 Homebrew Formula와 Scoop manifest를 tap/bucket 저장소에 올리는 일은 릴리스 채널 작업입니다. 사용자 홈 디렉터리를 바꾸지 않습니다. 태그를 만든 뒤에는 `./scripts/publish-package-channels.sh vX.Y.Z`를 실행하거나, 릴리스 워크플로 비밀 `PACKAGE_CHANNEL_TOKEN`을 설정해 자동으로 반영합니다.
 
-WinGet 매니페스트는 릴리스 빌드에 포함됩니다. 공식 카탈로그 등록은 `microsoft/winget-pkgs`에 `Deuk1718.GASOptimizer` 매니페스트를 제출하는 별도 작업입니다. 로컬에서는 생성된 YAML 디렉터리로 설치할 수 있습니다.
-
-```powershell
-winget install --manifest dist/packaging/winget
-```
+WinGet 매니페스트는 릴리스 빌드에 `Deuk1718.GASOptimizer` YAML로 포함됩니다. 공식 카탈로그 등록은 `microsoft/winget-pkgs`에 제출하는 별도 작업입니다. WinGet portable alias는 `.cmd` 런처를 실행하지 못할 수 있어서, 로컬 `winget install --manifest`는 아직 지원 경로가 아닙니다.
 
 Git clone 후 `install.sh`/`install.ps1`를 실행하는 방식은 그대로 지원합니다.
 
