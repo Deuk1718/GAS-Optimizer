@@ -200,7 +200,13 @@ gas-optimizer version
 - `gas-optimizer uninstall`은 기록된 대상을 선택한 뒤 확인을 받고 백업 후 제거합니다. Homebrew/Scoop 제거는 사용자·프로젝트 스킬 복사본을 지우지 않습니다.
 - 설치 기록은 `$GAS_OPTIMIZER_HOME/installations.json`에 저장되며, 기본값은 `~/.gas-optimizer/installations.json`입니다. 문서 형식은 `schemaVersion` 1입니다.
 
-생성된 Homebrew Formula와 Scoop manifest를 tap/bucket 저장소에 올리는 일은 릴리스 채널 작업입니다. 사용자 홈 디렉터리를 바꾸지 않습니다. Windows WinGet 채널은 이후 단계에서 추가합니다.
+생성된 Homebrew Formula와 Scoop manifest를 tap/bucket 저장소에 올리는 일은 릴리스 채널 작업입니다. 사용자 홈 디렉터리를 바꾸지 않습니다. 태그를 만든 뒤에는 `./scripts/publish-package-channels.sh vX.Y.Z`를 실행하거나, 릴리스 워크플로 비밀 `PACKAGE_CHANNEL_TOKEN`을 설정해 자동으로 반영합니다.
+
+WinGet 매니페스트는 릴리스 빌드에 포함됩니다. 공식 카탈로그 등록은 `microsoft/winget-pkgs`에 `Deuk1718.GASOptimizer` 매니페스트를 제출하는 별도 작업입니다. 로컬에서는 생성된 YAML 디렉터리로 설치할 수 있습니다.
+
+```powershell
+winget install --manifest dist/packaging/winget
+```
 
 Git clone 후 `install.sh`/`install.ps1`를 실행하는 방식은 그대로 지원합니다.
 

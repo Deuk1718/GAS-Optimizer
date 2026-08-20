@@ -24,7 +24,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/gas-optimizer-v*.zip dist/gas-optimizer-v*.tar.gz dist/SHA256SUMS.txt dist/packaging/homebrew/gas-optimizer.rb dist/packaging/scoop/gas-optimizer.json --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/gas-optimizer-v*.zip dist/gas-optimizer-v*.tar.gz dist/SHA256SUMS.txt dist/packaging/homebrew/gas-optimizer.rb dist/packaging/scoop/gas-optimizer.json dist/packaging/winget/*.yaml --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/gas-optimizer-v*.zip dist/gas-optimizer-v*.tar.gz dist/SHA256SUMS.txt dist/packaging/homebrew/gas-optimizer.rb dist/packaging/scoop/gas-optimizer.json --title "GAS-Optimizer $GITHUB_REF_NAME" --generate-notes --latest --verify-tag
+            gh release create "$GITHUB_REF_NAME" dist/gas-optimizer-v*.zip dist/gas-optimizer-v*.tar.gz dist/SHA256SUMS.txt dist/packaging/homebrew/gas-optimizer.rb dist/packaging/scoop/gas-optimizer.json dist/packaging/winget/*.yaml --title "GAS-Optimizer $GITHUB_REF_NAME" --generate-notes --latest --verify-tag
           fi
+      - name: Update Homebrew tap and Scoop bucket
+        env:
+          PACKAGE_CHANNEL_TOKEN: ${{ secrets.PACKAGE_CHANNEL_TOKEN }}
+        run: |
+          if [ -z "${PACKAGE_CHANNEL_TOKEN:-}" ]; then
+            echo "Skipping tap/bucket publish. Add repository secret PACKAGE_CHANNEL_TOKEN with write access to Deuk1718/homebrew-tap and Deuk1718/scoop-gas-optimizer, or run ./scripts/publish-package-channels.sh $GITHUB_REF_NAME locally."
+            exit 0
+          fi
+          GH_TOKEN="$PACKAGE_CHANNEL_TOKEN" ./scripts/publish-package-channels.sh "$GITHUB_REF_NAME"
