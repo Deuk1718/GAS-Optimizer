@@ -45,7 +45,7 @@ for (const file of ['scripts/test-cli.sh', 'scripts/test-cli.ps1', 'bin/gas-opti
 }
 
 const formulaTemplate = fs.readFileSync(path.join(root, 'packaging', 'homebrew', 'gas-optimizer.rb.in'), 'utf8');
-for (const marker of ['{{VERSION}}', '{{MACOS_URL}}', '{{MACOS_SHA256}}', 'depends_on "jq"', 'gas-optimizer install', 'gas-optimizer sync']) {
+for (const marker of ['{{VERSION}}', '{{MACOS_URL}}', '{{MACOS_SHA256}}', 'depends_on "jq"', 'bin.write_exec_script', 'gas-optimizer install', 'gas-optimizer sync']) {
   if (!formulaTemplate.includes(marker)) {
     throw new Error(`Homebrew Formula template is missing ${marker}`);
   }

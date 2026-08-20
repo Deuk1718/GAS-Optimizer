@@ -171,6 +171,7 @@ macOS, Linux, Windows 설치를 지원합니다. Claude.ai, Claude API, OpenAI A
 macOS Homebrew:
 
 ```bash
+brew tap deuk1718/tap
 brew install deuk1718/tap/gas-optimizer
 gas-optimizer install
 ```

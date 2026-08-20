@@ -10,7 +10,7 @@ class GasOptimizer < Formula
 
   def install
     libexec.install Dir["*"]
-    (bin/"gas-optimizer").write_exec_script (libexec/"bin/gas-optimizer")
+    bin.write_exec_script (libexec/"bin/gas-optimizer")
   end
 
   def caveats
